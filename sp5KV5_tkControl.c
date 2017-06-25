@@ -8,7 +8,8 @@
  *  - Recibe un mensaje del timer del led para indicar si debe prender o apagarlo.
  */
 
-#include <sp5KV5.h>
+#include "sp5KV5.h"
+#include "sp5KV5_tkGPRS/sp5KV5_tkGprs.h"
 
 static char ctl_printfBuff[CHAR128];
 
@@ -41,6 +42,9 @@ void tkControl(void * pvParameters)
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 	snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("starting tkControl..\r\n\0"));
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	systemVars.terminal_on = true;
+	systemVars.debugLevel = D_BASIC + D_GPRS;
 
 	// Loop
     for( ;; )
@@ -76,7 +80,7 @@ static u08 l_timer = 5;
 	l_timer = 5;
 	if ( systemWdg == 0 ) {
 		wdt_reset();
-		systemWdg = WDG_CTL + WDG_CMD + WDG_DIN + WDG_AIN;
+		systemWdg = WDG_CTL + WDG_CMD + WDG_DIN + WDG_AIN + WDG_OUT;
 	}
 
 }
@@ -152,9 +156,9 @@ static uint8_t count = 3;
     	IO_set_led_KA_logicBoard();				// Led de KA de la placa logica
     	IO_set_led_KA_analogBoard();			// Idem. analog board
 
-//     	if ( u_modem_prendido() ) {
-//    		IO_set_led_MODEM_analogBoard();
-//    	}
+     	if ( u_modem_prendido() ) {
+    		IO_set_led_MODEM_analogBoard();
+    	}
 
    	}
 
@@ -171,6 +175,9 @@ static uint8_t count = 3;
 static void pv_check_tilt(void)
 {
 
+	// Cuando detecta un tilt, queda alarmado y genera un dial.
+	// Solo se borra la flag con un reset !!!
+
 static uint8_t tilt_ant = 0;
 
    	if ( systemVars.tiltEnabled == false ) {
@@ -185,10 +192,10 @@ static uint8_t tilt_ant = 0;
     		snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL:: Flood alarm fired..\r\n"), u_now() );
    			FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 
-//   			// Mando un mensaje a tkGPRS para que disque inmediatamente
-//    		while ( xTaskNotify(xHandle_tkGprsTx, TK_TILT , eSetBits ) != pdPASS ) {
-//   				vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-//   			}
+   			// Mando un mensaje a tkGPRS para que disque inmediatamente
+   			while ( xTaskNotify(xHandle_tkGprs, TK_TILT , eSetBits ) != pdPASS ) {
+   				vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+   			}
 
    		}
    	}

@@ -71,34 +71,47 @@
 
 // --------------------------------------------------------------------------------
 
-#define IO_set_led_KA_logicBoard() (MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OLED ))
-#define IO_clear_led_KA_logicBoard() (MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OLED ))
-#define IO_set_led_KA_analogBoard() (cbi(LED_KA_PORT, LED_KA_BIT))
-#define IO_clear_led_KA_analogBoard() (sbi(LED_KA_PORT, LED_KA_BIT))
+#define IO_set_led_KA_logicBoard() 		(MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OLED ))
+#define IO_clear_led_KA_logicBoard() 	(MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OLED ))
+#define IO_set_led_KA_analogBoard() 	(cbi(LED_KA_PORT, LED_KA_BIT))
+#define IO_clear_led_KA_analogBoard() 	(sbi(LED_KA_PORT, LED_KA_BIT))
 
-#define IO_set_led_MODEM_analogBoard() (cbi(LED_MODEM_PORT, LED_MODEM_BIT))
+#define IO_set_led_MODEM_analogBoard() 	(cbi(LED_MODEM_PORT, LED_MODEM_BIT))
 #define IO_clear_led_MODEM_analogBoard() (sbi(LED_MODEM_PORT, LED_MODEM_BIT))
 
-#define IO_term_pwr_on() ( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OTERMPWR ) )
-#define IO_term_pwr_off() ( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OTERMPWR ) )
+#define IO_term_pwr_on() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OTERMPWR ) )
+#define IO_term_pwr_off() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OTERMPWR ) )
 
-#define IO_sensor_pwr_on() ( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_PWRSENSORS ) )
+#define IO_sensor_pwr_on() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_PWRSENSORS ) )
 #define IO_sensor_pwr_off() ( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_PWRSENSORS ) )
 
-#define IO_analog_pwr_on() ( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_OANALOG ) )
+#define IO_analog_pwr_on() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_OANALOG ) )
 #define IO_analog_pwr_off() ( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_OANALOG ) )
 
-#define IO_modem_hw_pwr_on() ( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OGPRSPWR ) )
-#define IO_modem_hw_pwr_off() ( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OGPRSPWR ) )
+#define IO_modem_hw_pwr_on() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OGPRSPWR ) )
+#define IO_modem_hw_pwr_off() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OGPRSPWR ) )
 
-#define IO_modem_sw_switch_high() ( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OGPRSSW ) )
-#define IO_modem_sw_switch_low() ( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OGPRSSW ) )
+#define IO_modem_sw_switch_high() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OGPRSSW ) )
+#define IO_modem_sw_switch_low() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OGPRSSW ) )
 
 #define IO_set_Q0()		( sbi(Q_PORT, Q0_CTL_PIN))
 #define IO_clear_Q0()	( cbi(Q_PORT, Q0_CTL_PIN))
 
 #define IO_set_Q1()		( sbi(Q_PORT, Q1_CTL_PIN))
 #define IO_clear_Q1()	( cbi(Q_PORT, Q1_CTL_PIN))
+
+#define IO_outputs_reset_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_RESET ) )
+#define IO_outputs_reset_off() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_RESET ) )
+#define IO_outputs_sleep_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_SLEEP ) )
+#define IO_outputs_sleep_off() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_SLEEP ) )
+#define IO_outputs_A1ENBL_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_ENA1 ) )
+#define IO_outputs_A1ENBL_off() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_ENA1 ) )
+#define IO_outputs_B1ENBL_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_ENB1 ) )
+#define IO_outputs_B1ENBL_off() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_ENB1 ) )
+#define IO_outputs_A1PHASE_on() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_PHA1 ) )
+#define IO_outputs_A1PHASE_off()	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_PHA1 ) )
+#define IO_outputs_B1PHASE_on()  	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_PHB1 ) )
+#define IO_outputs_B1PHASE_off()	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_PHB1 ) )
 
 bool IO_read_pulseInputs( uint8_t *din0, uint8_t *din1 );
 uint8_t IO_read_terminal_pin(void);

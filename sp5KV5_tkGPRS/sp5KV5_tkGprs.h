@@ -26,6 +26,9 @@ char gprs_printfBuff[CHAR256];
 #define G_CLR_BUFF	4
 #define G_SHOW_RSP	8
 
+#define bool_CONTINUAR	true
+#define bool_RESTART	false
+
 #define IMEIBUFFSIZE	24
 char buff_gprs_imei[IMEIBUFFSIZE];
 
@@ -36,24 +39,25 @@ struct {
 
 struct {
 	bool modem_prendido;
-	uint8_t signal_rcvd;
 } GPRS_stateVars;
 
 
 //bool gprs_esperar_apagado(void);
+bool gprs_esperar_apagado(void);
 bool gprs_prender(void);
 bool gprs_configurar(void);
-void gprs_monitor_sqe(void);
+bool gprs_monitor_sqe(void);
 bool gprs_get_ip(void);
 bool gprs_init_frame(void);
 bool gprs_data(void);
 
 void g_flushRXBuffer(void);
 void g_printRxBuffer(void);
-void pv_gprs_sleep(uint16_t timeout);
-char *gprs_getImei(void);
+void g_sleep(uint16_t timeout);
+char *g_getImei(void);
 
-bool open_socket(void);
-bool socket_is_open(void);
+bool g_open_socket(void);
+bool g_socket_is_open(void);
+void g_print_debug_gprs_header( const char *msg);
 
 #endif /* SP5KV5_TKGPRS_SP5KV5_TKGPRS_H_ */

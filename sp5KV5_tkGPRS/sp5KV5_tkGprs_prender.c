@@ -24,7 +24,7 @@ bool exit_flag = false;
 	// Debo poner esta flag en true para que el micro no entre en sleep y pueda funcionar el puerto
 	// serial y leer la respuesta del AT del modem.
 	GPRS_stateVars.modem_prendido = true;
-	pv_gprs_sleep(1);
+	g_sleep(1);
 
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
 		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_PRENDER:: Prendiendo modem\r\n\0"), u_now());
@@ -36,13 +36,13 @@ bool exit_flag = false;
 	strncpy_P(systemVars.dlg_ip_address, PSTR("000.000.000.000\0"),16);
 	systemVars.csq = 0;
 	systemVars.dbm = 0;
-	pv_gprs_sleep(5);		// Espero 5s
+	g_sleep(5);		// Espero 5s
 
 // Loop:
 	for ( hw_tries = 0; hw_tries < MAX_HW_TRIES_PWRON; hw_tries++ ) {
 
 		IO_modem_hw_pwr_on();	// Prendo la fuente ( alimento al modem ) HW
-		pv_gprs_sleep(1);		// Espero 1s que se estabilize la fuente.
+		g_sleep(1);		// Espero 1s que se estabilize la fuente.
 
 		// Reintento prenderlo activando el switch pin
 		for ( sw_tries = 0; sw_tries < MAX_SW_TRIES_PWRON; sw_tries++ ) {
@@ -58,14 +58,14 @@ bool exit_flag = false;
 			IO_modem_sw_switch_low();
 
 			// Espero 10s para interrogarlo
-			pv_gprs_sleep(10);
+			g_sleep(10);
 
 			// Envio un AT y espero un OK para confirmar que prendio.
 			FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
 			FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
 			g_flushRXBuffer();
 			FreeRTOS_write( &pdUART0, "AT\r\0", sizeof("AT\r\0") );
-			pv_gprs_sleep(1);
+			g_sleep(1);
 
 			g_printRxBuffer();	// Muestro lo que recibi del modem ( en modo debug )
 
@@ -90,12 +90,12 @@ bool exit_flag = false;
 			}
 
 			// No prendio: Espero 5s antes de reintentar prenderlo por SW.
-			pv_gprs_sleep(5);
+			g_sleep(5);
 		}
 
 		// No prendio luego de MAX_SW_TRIES_PWRON intentos SW. Apago y prendo de nuevo
 		IO_modem_hw_pwr_off();	// Apago la fuente
-		pv_gprs_sleep(10);		// Espero 10s antes de reintentar
+		g_sleep(10);		// Espero 10s antes de reintentar
 	}
 
 	// Si salgo por aqui es que el modem no prendio luego de todos los reintentos

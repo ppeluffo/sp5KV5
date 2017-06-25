@@ -27,9 +27,9 @@ void tkGprsTx(void * pvParameters)
 
 RESTART:
 
-//		if ( ! gprs_esperar_apagado() ) {	// Espero con el modem apagado
-//			goto RESTART;
-//		}
+		if ( gprs_esperar_apagado() != bool_CONTINUAR ) {	// Espero con el modem apagado
+			goto RESTART;
+		}
 
 		if ( ! gprs_prender() ) {	// Intento prenderlo y si no salgo con false
 			goto RESTART;			// y voy directo a APAGARLO
@@ -39,8 +39,7 @@ RESTART:
 			goto RESTART;				// banda ) salgo con false y vuelvo a APAGAR
 		}
 
-		if ( systemVars.wrkMode == WK_MONITOR_SQE ) { 	// Si corrsponde me quedo monitoreando el SQE.
-			gprs_monitor_sqe();							// Salgo por reset o timeout de control task
+		if ( gprs_monitor_sqe() != bool_CONTINUAR ) {	// Salgo por signal o reset o timeout de control task
 			goto RESTART;
 		}
 
@@ -52,9 +51,9 @@ RESTART:
 			goto RESTART;
 		}
 
-//		if ( ! gprs_data() ) {		// Trasmito datos si hay. En modo DISCRETO termino y vuelvo a apagarme y esperar
-//			goto RESTART;			// En modo CONTINUO me quedo en esperando datos y trasmitiendo
-//		}
+		if ( gprs_data() != bool_CONTINUAR ) {		// Trasmito datos si hay. En modo DISCRETO termino y vuelvo a apagarme y esperar
+			goto RESTART;							// En modo CONTINUO me quedo en esperando datos y trasmitiendo
+		}
 
 	}
 }

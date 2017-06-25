@@ -122,7 +122,7 @@ uint8_t modemBand;
 	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
 	g_flushRXBuffer();
 	FreeRTOS_write( &pdUART0, "AT*EBSE?\r\0", sizeof("AT*EBSE?\r\0") );
-	pv_gprs_sleep(1);
+	g_sleep(1);
 
 	g_printRxBuffer();
 
@@ -193,7 +193,7 @@ bool exit_flag = false;
 		g_flushRXBuffer();
 		FreeRTOS_write( &pdUART0, "AT+CREG?\r\0", sizeof("AT+CREG?\r\0") );
 
-		pv_gprs_sleep(5);	// Espero 5s por la respuesta.
+		g_sleep(5);	// Espero 5s por la respuesta.
 
 		// Chequeo la respuesta en modo persistente c/2s
 		check_tryes = 5;
@@ -222,7 +222,7 @@ bool exit_flag = false;
 				exit_flag = true;
 				goto EXIT;			}
 
-			pv_gprs_sleep(2);	// Espero 2s mas por la respuesta
+			g_sleep(2);	// Espero 2s mas por la respuesta
 		}
 
 		// No pude atachearme. Debo mandar de nuevo el comando

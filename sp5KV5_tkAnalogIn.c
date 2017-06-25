@@ -17,7 +17,7 @@ static frameData_t ANframe;
 static uint16_t  AN_timer;			// Temporizado que indica cuando poleo
 TimerHandle_t pollingTimer;
 
-typedef enum { POLEAR, PROCESAR, ESPERAR } t_anStates;
+typedef enum { anPOLEAR, anPROCESAR, anESPERAR } t_anStates;
 
 static void pv_tka_poleo(void);
 
@@ -50,7 +50,7 @@ uint8_t an_state;
 	//
 	AN_timer = 5;				// Inicialmente espero 5s para polear
 	pv_tka_apagar_sensores(); 	// Los sensores arrancan apagados
-	an_state = ESPERAR;			// El primer estado al que voy a ir.
+	an_state = anESPERAR;			// El primer estado al que voy a ir.
 
 	if ( xTimerStart( pollingTimer, 0 ) != pdPASS ) {	// Arranco el timer
 		u_panic(P_AIN_TIMERSTART);
@@ -75,24 +75,24 @@ uint8_t an_state;
 
 		// Recorro la maquina de estados
 		switch(an_state) {
-		case POLEAR:
+		case anPOLEAR:
 			pv_tka_poleo();			// Leo los datos
-			an_state = PROCESAR;	// next state
+			an_state = anPROCESAR;	// next state
 			break;
-		case PROCESAR:
+		case anPROCESAR:
 			pv_tka_promediar_datos();	// Promedio y corrijo el offset
 			pv_tka_save_frame_inBD();	// Guardo en memoria
 			pv_tka_signal_tasks();		// Aviso a otras tareas que hay datos
 			pv_tka_print_frame();		// Log
-			an_state = ESPERAR;			// next state
+			an_state = anESPERAR;			// next state
 			break;
-		case ESPERAR:
+		case anESPERAR:
 			// Expiro el timer: salida normal
 			if ( AN_timer == 0 ) {
 				// Fijo el tiempo de espera para el proximo loop
 				// Reflejo los cambios de configuracion
 				pv_tka_set_waiting_time();
-				an_state = POLEAR;
+				an_state = anPOLEAR;
 			}
 			break;
 		}
@@ -206,9 +206,9 @@ static void pv_tka_signal_tasks(void)
 //	}
 
 	// tkGPRS
-//	while ( xTaskNotify(xHandle_tkGprsTx, TK_FRAME_READY , eSetBits ) != pdPASS ) {
-//		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-//	}
+	while ( xTaskNotify(xHandle_tkGprs, TK_FRAME_READY , eSetBits ) != pdPASS ) {
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	}
 
 }
 //------------------------------------------------------------------------------------
@@ -434,7 +434,7 @@ void tkAnalogInit(void)
 	                   );
 
 	if ( pollingTimer == NULL )
-		u_panic(P_OUT_TIMERCREATE);
+		u_panic(P_AIN_TIMERCREATE);
 
 	// Inicialmente el timer esta apagado.
 	AN_timer = 0;

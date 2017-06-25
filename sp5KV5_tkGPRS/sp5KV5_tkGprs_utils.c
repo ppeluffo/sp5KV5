@@ -26,7 +26,7 @@ bool u_modem_prendido(void)
 	}
 }
 //--------------------------------------------------------------------------------------
-char *gprs_getImei(void)
+char *g_getImei(void)
 {
 	// Devuelve el IMEI leido al prender el modem.
 	return(buff_gprs_imei);
@@ -49,7 +49,7 @@ void g_printRxBuffer(void)
 	}
 }
 //------------------------------------------------------------------------------------
-void pv_gprs_sleep(uint16_t timeout)
+void g_sleep(uint16_t timeout)
 {
 	// Genero una espera contando de a 1 segundo
 	while(timeout-- > 0) {
@@ -58,7 +58,7 @@ void pv_gprs_sleep(uint16_t timeout)
 
 }
 //------------------------------------------------------------------------------------
-bool open_socket(void)
+bool g_open_socket(void)
 {
 	// Envio el comando AT para abrir el socket
 	// Espero hasta 5s que abra antes de salir.
@@ -93,7 +93,7 @@ bool exit_flag = false;
 	return(exit_flag);
 }
 //------------------------------------------------------------------------------------
-bool socket_is_open(void)
+bool g_socket_is_open(void)
 {
 	// El socket esta abierto si el modem esta prendido y
 	// el DCD esta en 0.
@@ -125,6 +125,18 @@ bool exit_flag = false;
 	}
 
 	return(exit_flag);
+
+}
+//------------------------------------------------------------------------------------
+void g_print_debug_gprs_header(const char *msg)
+{
+	// Como en el gprs_printBuff tengo el frame a trasmitir, no puedo usarlo.
+	// Aqui solo imprimo el header del debug.
+
+char printfBuff[CHAR64];
+
+	snprintf_P( printfBuff,sizeof(printfBuff),PSTR("%s %s"), u_now(), msg );
+	FreeRTOS_write( &pdUART1, printfBuff, sizeof(printfBuff) );
 
 }
 //------------------------------------------------------------------------------------

@@ -98,14 +98,14 @@ bool exit_flag = false;
 
 	for ( i = 0; i < MAX_TRYES_OPEN_SOCKET; i++ ) {
 
-		//pv_gprs_sleep(5);			// Espero 5s
-		if ( socket_is_open() ) {
+		//g_sleep(5);			// Espero 5s
+		if ( g_socket_is_open() ) {
 			pv_TX_init_frame();		// Escribo en el socket el frame de INIT
 			exit_flag = true;
 			break;
 		}
 
-		open_socket();
+		g_open_socket();
 	}
 
 	return(exit_flag);
@@ -122,9 +122,9 @@ bool exit_flag = false;
 
 	for ( timeout = 0; timeout < 10; timeout++) {
 
-		pv_gprs_sleep(1);				// Espero 1s
+		g_sleep(1);				// Espero 1s
 
-		if ( ! socket_is_open() ) {		// El socket se cerro
+		if ( ! g_socket_is_open() ) {		// El socket se cerro
 			exit_flag = false;
 			goto EXIT;
 		}
@@ -178,7 +178,7 @@ uint8_t i;
 	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%s"), systemVars.serverScript );
 	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("?DLGID=%s"), systemVars.dlgId );
 	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&PASSWD=%s"), systemVars.passwd );
-	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&IMEI=%s"), gprs_getImei() );
+	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&IMEI=%s"), g_getImei() );
 	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&VER=%s\0"), SP5K_REV );
 	// GPRS sent
 	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
@@ -212,9 +212,9 @@ uint8_t i;
 	if ( systemVars.pwrMode == PWR_CONTINUO) { pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&PWRM=CONT")); }
 	if ( systemVars.pwrMode == PWR_DISCRETO) { pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&PWRM=DISC")); }
 	// pwrSave
-//	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&PWRS=%d,"),systemVars.pwrSave);
-//	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%02d%02d,"),systemVars.pwrSaveStartTime.hour, systemVars.pwrSaveStartTime.min );
-//	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%02d%02d"), systemVars.pwrSaveEndTime.hour, systemVars.pwrSaveEndTime.min);
+	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&PWRS=%d,"),systemVars.pwrSave);
+	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%02d%02d,"),systemVars.pwrSaveStartTime.hour, systemVars.pwrSaveStartTime.min );
+	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%02d%02d"), systemVars.pwrSaveEndTime.hour, systemVars.pwrSaveEndTime.min);
 	// csq
 	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&CSQ=%d\0"), systemVars.csq);
 	// GPRS sent

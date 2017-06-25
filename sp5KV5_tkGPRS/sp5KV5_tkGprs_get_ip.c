@@ -57,7 +57,7 @@ bool exit_flag = false;
 		while ( check_tryes-- > 0 ) {
 
 			// Doy tiempo a que responda la red
-			pv_gprs_sleep(3);
+			g_sleep(3);
 
 			// Analizo la respuesta
 			if ( strstr( gprsRx.buffer, "E2IPA: 000") != NULL ) {
@@ -79,7 +79,7 @@ bool exit_flag = false;
 		}
 
 		// Espero 5s antes de dar el comando AT de nuevo
-		pv_gprs_sleep(5);
+		g_sleep(5);
 	}
 
 	// Aqui es que luego de tantos reintentos no consegui la IP.

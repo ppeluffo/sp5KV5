@@ -7,10 +7,10 @@
 
 #include <sp5KV5.h>
 
-uint8_t pv_paramLoad(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
-uint8_t pv_paramStore(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
-uint8_t pv_checkSum ( uint8_t *data,uint16_t sizebytes );
-uint16_t pv_convert_str_to_mins ( char *time_str);
+static uint8_t pv_paramLoad(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
+static uint8_t pv_paramStore(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
+static uint8_t pv_checkSum ( uint8_t *data,uint16_t sizebytes );
+static void pv_convert_str_to_time_t ( char *time_str, time_t time_struct);
 
 //----------------------------------------------------------------------------------------
 void u_panic( uint8_t panicCode )
@@ -23,6 +23,41 @@ char msg[16];
 	vTaskSuspendAll ();
 	vTaskEndScheduler ();
 	exit (1);
+}
+//----------------------------------------------------------------------------------------
+bool u_configOutputs( char *modo, char *param1, char *param2 )
+{
+	// Configura las salidas en el systemVars.
+	// Manda una señal a la tkOutput.
+
+	if ((!strcmp_P( strupr(modo), PSTR("OFF")))) {
+		systemVars.outputs.modo = OUT_OFF;
+		goto EXIT;
+	}
+
+	if ((!strcmp_P( strupr(modo), PSTR("NORMAL")))) {
+		systemVars.outputs.modo = OUT_NORMAL;
+		if ( param1 != NULL ) { ( atoi(param1) == 0 )? ( systemVars.outputs.out0 = 0) : (systemVars.outputs.out0 = 1); }
+		if ( param2 != NULL ) { ( atoi(param2) == 0 )? ( systemVars.outputs.out1 = 0) : (systemVars.outputs.out1 = 1); }
+		goto EXIT;
+	}
+
+	if ((!strcmp_P( strupr(modo), PSTR("CONSIGNA")))) {
+		systemVars.outputs.modo = OUT_CONSIGNA;
+		if ( param1 != NULL ) { pv_convert_str_to_time_t(param1,systemVars.outputs.consigna_diurna); }
+		if ( param2 != NULL ) { pv_convert_str_to_time_t(param2,systemVars.outputs.consigna_nocturna); }
+		goto EXIT;
+	}
+
+EXIT:
+
+	// tk_Output: notifico en modo persistente. Si no puedo, me voy a resetear por watchdog. !!!!
+	while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	}
+
+	return(true);
+
 }
 //----------------------------------------------------------------------------------------
 bool u_configAnalogCh( uint8_t channel, char *chName, char *s_iMin, char *s_iMax, char *s_mMin, char *s_mMax )
@@ -99,6 +134,10 @@ u32 tdial;
 //----------------------------------------------------------------------------------------
 bool u_configTimerPoll(char *s_tPoll)
 {
+	// Configura el tiempo de poleo.
+	// El cambio puede ser desde tkCmd o tkGprs(init frame)
+	// Le avisa a la tarea tkAnalog del cambio
+
 uint16_t tpoll;
 
 	tpoll = abs((uint16_t) ( atol(s_tPoll) ));
@@ -109,6 +148,11 @@ uint16_t tpoll;
 
 	systemVars.timerPoll = tpoll;
 	xSemaphoreGive( sem_SYSVars );
+
+	// tk_aIn: Notifico en modo persistente. Si no puedo me voy a resetear por watchdog. !!!!
+	while ( xTaskNotify(xHandle_tkAIn, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	}
 
 	return(true);
 }
@@ -122,8 +166,8 @@ void u_configPwrSave(u08 modoPwrSave, char *s_startTime, char *s_endTime)
 		taskYIELD();
 
 	systemVars.pwrSave = modoPwrSave;
-	if ( s_startTime != NULL ) { systemVars.pwrSaveStartTime = pv_convert_str_to_mins( s_startTime ); }
-	if ( s_endTime != NULL ) { systemVars.pwrSaveEndTime = pv_convert_str_to_mins( s_endTime); }
+	if ( s_startTime != NULL ) { pv_convert_str_to_time_t( s_startTime, systemVars.pwrSaveStartTime); }
+	if ( s_endTime != NULL ) { pv_convert_str_to_time_t( s_endTime, systemVars.pwrSaveEndTime); }
 
 	xSemaphoreGive( sem_SYSVars );
 
@@ -262,6 +306,15 @@ uint8_t channel;
 	// Detector de Tilt.
 	systemVars.tiltEnabled = false;
 
+	// Salidas:
+	systemVars.outputs.modo = OUT_OFF;
+	systemVars.outputs.out0 = 0;
+	systemVars.outputs.out1 = 0;
+	systemVars.outputs.consigna_diurna.hour = 05;
+	systemVars.outputs.consigna_diurna.min = 30;
+	systemVars.outputs.consigna_nocturna.hour = 23;
+	systemVars.outputs.consigna_nocturna.min = 30;
+
 	xSemaphoreGive( sem_SYSVars );
 
 
@@ -297,7 +350,7 @@ void u_reset(void)
 //------------------------------------------------------------------------------------
 // FUNCIONES PRIVADAS
 //------------------------------------------------------------------------------------
-uint8_t pv_paramLoad(uint8_t* data, uint8_t* addr, uint16_t sizebytes)
+static uint8_t pv_paramLoad(uint8_t* data, uint8_t* addr, uint16_t sizebytes)
 {
 uint16_t i;
 uint8_t checksum_stored=0;
@@ -319,7 +372,7 @@ uint8_t checksum=0;
 		return false;
 }
 //------------------------------------------------------------------------------------
-uint8_t pv_paramStore(uint8_t* data, uint8_t* addr, uint16_t sizebytes)
+static uint8_t pv_paramStore(uint8_t* data, uint8_t* addr, uint16_t sizebytes)
 {
 	// Almacena un string de bytes en la eeprom interna del micro
 
@@ -339,7 +392,7 @@ uint8_t checksum=0;
 	return(checksum);
 }
 //------------------------------------------------------------------------------------
-uint8_t pv_checkSum ( uint8_t *data,uint16_t sizebytes )
+static uint8_t pv_checkSum ( uint8_t *data,uint16_t sizebytes )
 {
 uint16_t i;
 uint8_t checksum=0;
@@ -351,19 +404,17 @@ uint8_t checksum=0;
 	return(checksum);
 }
 //------------------------------------------------------------------------------------
-uint16_t pv_convert_str_to_mins ( char *time_str)
+static void pv_convert_str_to_time_t ( char *time_str, time_t time_struct )
 {
 
 	// Convierte un string hhmm en una estructura time_type que tiene
 	// un campo hora y otro minuto
 
-uint16_t time_num, HH,MM,mins;
+uint16_t time_num;
 
 	time_num = atol(time_str);
-	HH = time_num / 100;
-	MM = time_num % 100;
-	mins = 60 * HH + MM;
-	return(mins);
+	time_struct.hour = (uint8_t) (time_num / 100);
+	time_struct.min = (uint8_t)(time_num % 100);
 
 }
 //------------------------------------------------------------------------------------
