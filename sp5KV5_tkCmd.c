@@ -31,6 +31,7 @@ static void cmdResetFunction(void);
 static void cmdStatusFunction(void);
 static void cmdReadFunction(void);
 static void cmdWriteFunction(void);
+static void cmdRedialFunction(void);
 /*------------------------------------------------------------------------------------*/
 void tkCmd(void * pvParameters)
 {
@@ -51,6 +52,7 @@ uint8_t ticks;
 	cmdlineAddCommand((uint8_t *)("read"), cmdReadFunction);
 	cmdlineAddCommand((uint8_t *)("write"), cmdWriteFunction);
 	cmdlineAddCommand((uint8_t *)("status"), cmdStatusFunction);
+	cmdlineAddCommand((uint8_t *)("redial"), cmdRedialFunction);
 
 	// Espero la notificacion para arrancar
 	vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
@@ -106,6 +108,8 @@ static void cmdHelpFunction(void)
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-reset {memory}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-status\r\n\0"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-redial\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-write rtc YYMMDDhhmm\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -174,6 +178,16 @@ static void cmdResetFunction(void)
 	cmdClearScreen();
 	// RESET
 	u_reset();
+
+}
+/*------------------------------------------------------------------------------------*/
+static void cmdRedialFunction(void)
+{
+	// Envio un mensaje a la tk_Gprs para que recargue la configuracion y disque al server
+	// Notifico en modo persistente. Si no puedo me voy a resetear por watchdog. !!!!
+	while ( xTaskNotify(xHandle_tkGprs,TK_REDIAL , eSetBits ) != pdPASS ) {
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	}
 
 }
 /*------------------------------------------------------------------------------------*/
@@ -784,19 +798,13 @@ uint8_t argc;
 
 		// (SM)
 		if (!strcmp_P( strupr(argv[2]), PSTR("OUT0")) && ( systemVars.wrkMode == WK_SERVICE) ) {
-			( atoi(argv[3]) == 0 )? ( systemVars.outputs.out0 = 0) : (systemVars.outputs.out0 = 1);
-			while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
-				vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-			}
+			( atoi(argv[3]) == 0 )?  OUT0_off() :  OUT0_on();
 			pv_snprintfP_OK();
 			return;
 		}
 
 		if (!strcmp_P( strupr(argv[2]), PSTR("OUT1")) && ( systemVars.wrkMode == WK_SERVICE) ) {
-			( atoi(argv[3]) == 0 )? ( systemVars.outputs.out1 = 0) : (systemVars.outputs.out1 = 1);
-			while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
-				vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-			}
+			( atoi(argv[3]) == 0 )?  OUT1_off() :  OUT1_on();
 			pv_snprintfP_OK();
 			return;
 		}
@@ -810,7 +818,7 @@ uint8_t argc;
 			return;
 		}
 
-		return;
+		pv_snprintfP_ERR();
 
 	}
 

@@ -41,7 +41,7 @@ uint8_t out_state;
 	for( ;; )
 	{
 
-		u_kick_Wdg(WDG_AIN);
+		u_kick_Wdg(WDG_OUT);
 
 		xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 1000 / portTICK_RATE_MS ) );
 		// Veo si llego un mensaje

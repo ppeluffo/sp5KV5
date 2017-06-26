@@ -264,7 +264,7 @@ uint8_t systemWdg;
 #define WDG_CTL			0x01
 #define WDG_CMD			0x02
 #define WDG_DIN			0x04
-#define  WDG_OUT		0x08
+#define WDG_OUT			0x08
 #define WDG_AIN			0x10
 //#define WDG_GPRS		0x20
 //#define WDG_GPRSRX	0x40

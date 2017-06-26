@@ -200,10 +200,10 @@ static void pv_tka_signal_tasks(void)
 
 	pv_tka_print_EntryMsg("signal");
 
-	// tkConsignas
-//	while ( xTaskNotify(xHandle_tkConsignas, TK_FRAME_READY , eSetBits ) != pdPASS ) {
-//		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-//	}
+	// tkOutputs
+	while ( xTaskNotify(xHandle_tkOutputs, TK_FRAME_READY , eSetBits ) != pdPASS ) {
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	}
 
 	// tkGPRS
 	while ( xTaskNotify(xHandle_tkGprs, TK_FRAME_READY , eSetBits ) != pdPASS ) {
