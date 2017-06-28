@@ -136,7 +136,8 @@ static void cmdHelpFunction(void)
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs out0,1 {0,1}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs vopen{0,1}, vclose{0,1}\r\n\0"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  save\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) mcp {devId}{regAddr}{regValue}\r\n\0"));
@@ -368,6 +369,14 @@ StatBuffer_t pxFFStatBuffer;
 	default:
 		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("ERROR\r\n"));
 		break;
+	}
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
+	// PWR SAVE:
+	if ( systemVars.pwrSave.modo ==  modoPWRSAVE_OFF ) {
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("  pwrsave=off\r\n\0"));
+	} else {
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("  pwrsave=on start[%02d:%02d], end[%02d:%02d]\r\n\0"), systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min, systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min);
 	}
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
@@ -814,6 +823,30 @@ uint8_t argc;
 			while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
 				vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 			}
+			pv_snprintfP_OK();
+			return;
+		}
+
+		if (!strcmp_P( strupr(argv[2]), PSTR("VOPEN0")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			OUT_open_valve_0();
+			pv_snprintfP_OK();
+			return;
+		}
+
+		if (!strcmp_P( strupr(argv[2]), PSTR("VCLOSE0")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			OUT_close_valve_0();
+			pv_snprintfP_OK();
+			return;
+		}
+
+		if (!strcmp_P( strupr(argv[2]), PSTR("VOPEN1")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			OUT_open_valve_1();
+			pv_snprintfP_OK();
+			return;
+		}
+
+		if (!strcmp_P( strupr(argv[2]), PSTR("VCLOSE1")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			OUT_close_valve_1();
 			pv_snprintfP_OK();
 			return;
 		}

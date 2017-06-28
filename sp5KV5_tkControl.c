@@ -43,9 +43,6 @@ void tkControl(void * pvParameters)
 	snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("starting tkControl..\r\n\0"));
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 
-	systemVars.terminal_on = true;
-	systemVars.debugLevel = D_BASIC + D_GPRS;
-
 	// Loop
     for( ;; )
     {
@@ -117,7 +114,7 @@ uint8_t pin;
 
 	// Transicion 1-> 0: APAGO
 	if ( ( pinAnt == 1) && ( pin == 0 ) ) {
-		snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL:: Terminal going off ..\r\n\0"), u_now() );
+		snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL::term: Terminal going off ..\r\n\0"), u_now() );
 		FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 		vTaskDelay( ( TickType_t)( 1500 / portTICK_RATE_MS ) );
 		IO_term_pwr_off();
@@ -189,7 +186,7 @@ static uint8_t tilt_ant = 0;
     	// Se movio. Disparo un llamado y quedo alarmado.
     	if ( ! f_tilt_alarmFired ) {
     		f_tilt_alarmFired = true;
-    		snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL:: Flood alarm fired..\r\n"), u_now() );
+    		snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL::tilt: Flood alarm fired..\r\n"), u_now() );
    			FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 
    			// Mando un mensaje a tkGPRS para que disque inmediatamente
@@ -211,7 +208,7 @@ static uint16_t sec_auto_exit = 1800;
 	if ( systemVars.wrkMode != WK_NORMAL ) {
 		sec_auto_exit--;
 		if ( sec_auto_exit == 0 ) {
-			snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL:: Automatic exit of service mode..\r\n\0"), u_now() );
+			snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL::autoexit: Automatic exit of service mode..\r\n\0"), u_now() );
 			FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 			vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 			// RESET
@@ -236,7 +233,7 @@ static uint32_t ticks_to_reset = 86400; // Segundos en 1 dia.
 		return;
 	}
 
-	snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL:: Daily Reset !!\r\n\0"), u_now() );
+	snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%s CTL::reset: Daily Reset !!\r\n\0"), u_now() );
 	u_debugPrint( D_BASIC, ctl_printfBuff, sizeof(ctl_printfBuff) );
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 	wdt_enable(WDTO_30MS);

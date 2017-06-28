@@ -165,9 +165,9 @@ void u_configPwrSave(u08 modoPwrSave, char *s_startTime, char *s_endTime)
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
 		taskYIELD();
 
-	systemVars.pwrSave = modoPwrSave;
-	if ( s_startTime != NULL ) { pv_convert_str_to_time_t( s_startTime, systemVars.pwrSaveStartTime); }
-	if ( s_endTime != NULL ) { pv_convert_str_to_time_t( s_endTime, systemVars.pwrSaveEndTime); }
+	systemVars.pwrSave.modo = modoPwrSave;
+	if ( s_startTime != NULL ) { pv_convert_str_to_time_t( s_startTime, systemVars.pwrSave.hora_start); }
+	if ( s_endTime != NULL ) { pv_convert_str_to_time_t( s_endTime, systemVars.pwrSave.hora_fin); }
 
 	xSemaphoreGive( sem_SYSVars );
 
@@ -314,6 +314,13 @@ uint8_t channel;
 	systemVars.outputs.consigna_diurna.min = 30;
 	systemVars.outputs.consigna_nocturna.hour = 23;
 	systemVars.outputs.consigna_nocturna.min = 30;
+
+	// PwrSave
+	systemVars.pwrSave.modo = modoPWRSAVE_ON;
+	systemVars.pwrSave.hora_start.hour = 23;
+	systemVars.pwrSave.hora_start.min = 30;
+	systemVars.pwrSave.hora_fin.hour = 5;
+	systemVars.pwrSave.hora_fin.min = 30;
 
 	xSemaphoreGive( sem_SYSVars );
 

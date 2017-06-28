@@ -100,13 +100,13 @@ bool retS;
 		if (din0 == 0 ) { digIn.pulses[0]++ ; debugQ = true;}
 		if (din1 == 0 ) { digIn.pulses[1]++ ; debugQ = true;}
 	} else {
-		snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("%s tkDIGITAL:: READ DIN ERROR !!\r\n\0"), u_now() );
+		snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("%s dDATA::poll: READ DIN ERROR !!\r\n\0"), u_now() );
 		u_debugPrint(( D_BASIC + D_DIGITAL), dIn_printfBuff, sizeof(dIn_printfBuff) );
 		goto quit;
 	}
 
 	if ( ((systemVars.debugLevel & D_DIGITAL) != 0) && debugQ ) {
-		snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("%s tkDIGITAL:: din0=%.0f(%d)[.0f],din1=%.0f(%d)[.0f]\r\n\0"),u_now(),digIn.pulses[0],din0,digIn.pulses[1],din1);
+		snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("%s dDATA::poll: din0=%.0f(%d)[.0f],din1=%.0f(%d)[.0f]\r\n\0"),u_now(),digIn.pulses[0],din0,digIn.pulses[1],din1);
 		u_debugPrint( D_DIGITAL, dIn_printfBuff, sizeof(dIn_printfBuff) );
 	}
 

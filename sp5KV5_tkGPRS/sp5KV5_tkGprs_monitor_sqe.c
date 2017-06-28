@@ -71,7 +71,7 @@ char *ts = NULL;
 		systemVars.dbm = 113 - 2 * systemVars.csq;
 
 		if ( (systemVars.debugLevel &  ( D_BASIC + D_GPRS ) ) != 0) {
-			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_MONSQE:: CSQ=%d,DBM=%d\r\n\0"), u_now(),systemVars.csq,systemVars.dbm );
+			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::monsqe: CSQ=%d,DBM=%d\r\n\0"), u_now(),systemVars.csq,systemVars.dbm );
 			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		}
 

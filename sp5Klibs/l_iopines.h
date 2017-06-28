@@ -104,14 +104,16 @@
 #define IO_outputs_reset_off() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_RESET ) )
 #define IO_outputs_sleep_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_SLEEP ) )
 #define IO_outputs_sleep_off() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_SLEEP ) )
-#define IO_outputs_A1ENBL_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_ENA1 ) )
-#define IO_outputs_A1ENBL_off() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_ENA1 ) )
-#define IO_outputs_B1ENBL_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_ENB1 ) )
-#define IO_outputs_B1ENBL_off() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_ENB1 ) )
-#define IO_outputs_A1PHASE_on() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_PHA1 ) )
-#define IO_outputs_A1PHASE_off()	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_PHA1 ) )
-#define IO_outputs_B1PHASE_on()  	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_PHB1 ) )
-#define IO_outputs_B1PHASE_off()	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_PHB1 ) )
+
+#define IO_outputs_A1ENBL_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_ENA1 ) )
+#define IO_outputs_A1ENBL_off() 	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_ENA1 ) )
+#define IO_outputs_B1ENBL_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_ENB1 ) )
+#define IO_outputs_B1ENBL_off() 	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_ENB1 ) )
+
+#define IO_outputs_A1PHASE_on() 	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_PHA1 ) )
+#define IO_outputs_A1PHASE_off()	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_PHA1 ) )
+#define IO_outputs_B1PHASE_on()  	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_PHB1 ) )
+#define IO_outputs_B1PHASE_off()	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_PHB1 ) )
 
 bool IO_read_pulseInputs( uint8_t *din0, uint8_t *din1 );
 uint8_t IO_read_terminal_pin(void);

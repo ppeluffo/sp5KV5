@@ -47,8 +47,15 @@ uint8_t out_state;
 		// Veo si llego un mensaje
 		if ( xResult == pdTRUE ) {
 			if ( ( ulNotifiedValue & TK_PARAM_RELOAD ) != 0 ) {			// Mensaje de reload configuration.
-				pv_out_chequear();										// Reflejo los cambios de configuracion
+				pv_init_outputs();										// Reflejo los cambios de configuracion
 			}
+		}
+
+		// La FSM se ejecuta solo si estoy en modo normal. En otros modos no
+		// para que por ej. en modo service pueda probar las salidas.
+
+		if ( systemVars.wrkMode != WK_NORMAL ) {
+			continue;
 		}
 
 		// Recorro la maquina de estados
@@ -66,6 +73,7 @@ uint8_t out_state;
 			}
 			break;
 		}
+
 	}
 }
 //------------------------------------------------------------------------------------
@@ -87,6 +95,8 @@ static void pv_out_chequear(void)
 static void pv_check_consignas(void)
 {
 
+	// Las consignas se chequean y/o setean en cualquier modo de trabajo, continuo o discreto
+
 RtcTimeType_t rtcDateTime;
 
 	RTC_read(&rtcDateTime);
@@ -94,14 +104,22 @@ RtcTimeType_t rtcDateTime;
 	if ( ( rtcDateTime.hour == systemVars.outputs.consigna_diurna.hour ) &&
 			( rtcDateTime.min == systemVars.outputs.consigna_diurna.min )  ) {
 
-		 OUT_aplicar_consigna_diurna();
-		 return;
+		OUT_aplicar_consigna_diurna();
+		if ( (systemVars.debugLevel & (D_BASIC + D_OUTPUTS) ) != 0) {
+			snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::check: Consigna Diurna\r\n\0"), u_now() );
+			FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
+		}
+		return;
 	 }
 
 	if ( ( rtcDateTime.hour == systemVars.outputs.consigna_nocturna.hour ) &&
 			( rtcDateTime.min == systemVars.outputs.consigna_nocturna.min )  ) {
 
 		OUT_aplicar_consigna_nocturna();
+		if ( (systemVars.debugLevel & (D_BASIC + D_OUTPUTS) ) != 0) {
+			snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::check: Consigna Nocturna\r\n\0"), u_now() );
+			FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
+		}
 		return;
 	}
 
@@ -110,7 +128,15 @@ RtcTimeType_t rtcDateTime;
 static void pv_check_outputs_normales(void)
 {
 
-	// Aplica el valor indicado en systemVars a las salidas.
+	// Aplica el valor indicado en systemVars a las salidas. Solo en modo CONTINUO, ya que en modo
+	// discreto consumiria mucha corriente.
+	// En este modo, deberia estar configuradas las OUTPUT a OFF o CONSIGNAS
+
+	if ( systemVars.pwrMode == PWR_DISCRETO ) {
+		// No deberia entrar nunca aca pero si hay algo mal configurado ...
+		IO_outputs_sleep_on();
+		return;
+	}
 
 	( systemVars.outputs.out0 == 0 ) ?	OUT0_off() : OUT0_on();
 	( systemVars.outputs.out1 == 0 ) ?	OUT1_off() : OUT1_on();
@@ -193,15 +219,15 @@ uint16_t now, horaConsNoc, horaConsDia ;
 	// Aplico la consigna
 	switch (systemVars.outputs.consigna_aplicada) {
 	case CONSIGNA_OFF:
-		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("ERROR al setear consignas: horas incompatibles\r\n\0"));
+		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: ERROR al setear consignas: horas incompatibles\r\n\0"), u_now());
 		break;
 	case CONSIGNA_DIURNA:
 		OUT_aplicar_consigna_diurna();
-		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s Consigna Inicial: Diurna\r\n\0"), u_now() );
+		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: Consigna Diurna\r\n\0"), u_now() );
 		break;
 	case CONSIGNA_NOCTURNA:
 		OUT_aplicar_consigna_nocturna();
-		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s Consigna Inicial: Nocturna\r\n\0"), u_now() );
+		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: Consigna Nocturna\r\n\0"), u_now() );
 		break;
 	}
 
@@ -218,6 +244,11 @@ static void pv_init_outputs_normales(void)
 
 	( systemVars.outputs.out0 == 0 ) ?	OUT0_off() : OUT0_on();
 	( systemVars.outputs.out1 == 0 ) ?	OUT1_off() : OUT1_on();
+
+	if ( (systemVars.debugLevel & (D_BASIC + D_OUTPUTS) ) != 0) {
+		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: Outputs normales O0=%d,O1=%d\r\n\0"), u_now(),systemVars.outputs.out0,systemVars.outputs.out1 );
+		FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
+	}
 
 }
 //------------------------------------------------------------------------------------

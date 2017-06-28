@@ -48,7 +48,7 @@ uint8_t sleep_time;
 bool exit_flag = false;
 
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_DATA::\r\n\0"), u_now() );
+		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::data: \r\n\0"), u_now() );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -66,43 +66,46 @@ bool exit_flag = false;
 				goto EXIT;
 			}
 
-		}
+		} else {
 
-		// No hay datos para trasmitir
-		// Modo discreto, Salgo a apagarme y esperar
-		if ( systemVars.pwrMode == PWR_DISCRETO ) {
-			exit_flag = bool_CONTINUAR ;
-			goto EXIT;
-		}
-
-		// modo continuo: espero 90s antes de revisar si hay mas datos para trasmitir
-		if ( systemVars.pwrMode == PWR_CONTINUO ) {
-			sleep_time = 90;
-			while( sleep_time-- > 0 ) {
-
-				// Analizo las señales
-				xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 250 / portTICK_RATE_MS ) );
-				if ( xResult == pdTRUE ) {
-
-					if ( ( ulNotifiedValue & TK_PARAM_RELOAD ) != 0 ) {		// Mensaje de reload configuration.
-						exit_flag = bool_RESTART;							// Retorna y hace que deba ir a RESTART y leer la nueva configuracion
-						goto EXIT;
-					} else if ( ( ulNotifiedValue & TK_REDIAL ) != 0 ) {  	// Mensaje de read frame desde el cmdLine.
-						exit_flag =  bool_RESTART;							// Retorna y avanzo para discar rapido
-						goto EXIT;
-					} else if ( ( ulNotifiedValue & TK_TILT ) != 0 ) {  	// Mensaje de tilt desde tkControl.
-						exit_flag =  bool_RESTART;							// Retorna y avanzo para discar rapido
-						goto EXIT;
-					}  else if ( ( ulNotifiedValue & TK_FRAME_READY ) != 0 ) {  	// Mensaje que hay un frame para trasmitir
-						break;						          					  	// Salgo del ciclo while para trasmitir enseguida
-					}
-				}
-
-				vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
-
+			// No hay datos para trasmitir
+			// Modo discreto, Salgo a apagarme y esperar
+			if ( systemVars.pwrMode == PWR_DISCRETO ) {
+				exit_flag = bool_CONTINUAR ;
+				goto EXIT;
 			}
-		}
-	}
+
+			// modo continuo: espero 90s antes de revisar si hay mas datos para trasmitir
+			if ( systemVars.pwrMode == PWR_CONTINUO ) {
+				sleep_time = 90;
+				while( sleep_time-- > 0 ) {
+
+					// Analizo las señales
+					xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 250 / portTICK_RATE_MS ) );
+					if ( xResult == pdTRUE ) {
+
+						if ( ( ulNotifiedValue & TK_PARAM_RELOAD ) != 0 ) {		// Mensaje de reload configuration.
+							exit_flag = bool_RESTART;							// Retorna y hace que deba ir a RESTART y leer la nueva configuracion
+							goto EXIT;
+						} else if ( ( ulNotifiedValue & TK_REDIAL ) != 0 ) {  	// Mensaje de read frame desde el cmdLine.
+							exit_flag =  bool_RESTART;							// Retorna y avanzo para discar rapido
+							goto EXIT;
+						} else if ( ( ulNotifiedValue & TK_TILT ) != 0 ) {  	// Mensaje de tilt desde tkControl.
+							exit_flag =  bool_RESTART;							// Retorna y avanzo para discar rapido
+							goto EXIT;
+						}  else if ( ( ulNotifiedValue & TK_FRAME_READY ) != 0 ) {  	// Mensaje que hay un frame para trasmitir
+							break;						          					  	// Salgo del ciclo while para trasmitir enseguida
+						}
+					}
+
+					vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
+
+				} // while
+			} // if
+
+		} // else
+
+	} // while
 
 	// Exit area:
 EXIT:
@@ -139,7 +142,7 @@ uint16_t pos = 0;
 	}
 
 	if ( (systemVars.debugLevel & D_GPRS ) != 0) {
-		pos = snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_MEM:: [wrPtr=%d,rdPtr=%d,delPtr=%d][Free=%d,4del=%d]"),u_now(), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
+		pos = snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::data: [wrPtr=%d,rdPtr=%d,delPtr=%d][Free=%d,4del=%d]"),u_now(), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
 		if ( exit_flag == false ) {
 			pos += snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ),PSTR(" EMPTY\r\n\0" ));
 		} else {
@@ -229,7 +232,7 @@ uint16_t pos;
 
 	// DebugMsg
 	if ( (systemVars.debugLevel & D_GPRS ) != 0) {
-		g_print_debug_gprs_header("GPRS_SENT::");
+		g_print_debug_gprs_header("GPRS::data:");
 		snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0" ));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
@@ -257,10 +260,10 @@ uint16_t pos = 0;
 
 	// DebugMsg
 	if ( (systemVars.debugLevel & D_GPRS ) != 0) {
-		g_print_debug_gprs_header("GPRS_SENT::");
+		g_print_debug_gprs_header("GPRS::data:");
 		snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0" ));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_DATA:: Frame enviado\r\n\0"), u_now());
+		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::data: Frame enviado\r\n\0"), u_now());
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -308,15 +311,15 @@ StatBuffer_t pxFFStatBuffer;
 
 	// Paso 4: Log
 	if ( (systemVars.debugLevel & D_GPRS ) != 0) {
-		g_print_debug_gprs_header("GPRS_SENT::");
+		g_print_debug_gprs_header("GPRS::data:");
 		snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0" ));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 		// Agrego mem.stats
 		if (pxFFStatBuffer.errno > 0 ) {
-			snprintf_P( gprs_printfBuff,  sizeof(gprs_printfBuff), PSTR("%s GPRS_DATA:: ERROR (%d) MEM[%d/%d/%d][%d/%d]\r\n\0"), u_now(), pxFFStatBuffer.errno, pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
+			snprintf_P( gprs_printfBuff,  sizeof(gprs_printfBuff), PSTR("%s GPRS::data: ERROR (%d) MEM[%d/%d/%d][%d/%d]\r\n\0"), u_now(), pxFFStatBuffer.errno, pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
 		} else {
-			snprintf_P( gprs_printfBuff, sizeof(gprs_printfBuff), PSTR("%s GPRS_DATA:: OK MEM[%d/%d/%d][%d/%d]\r\n\0"), u_now(), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
+			snprintf_P( gprs_printfBuff, sizeof(gprs_printfBuff), PSTR("%s GPRS::data: sent OK. MEM[%d/%d/%d][%d/%d]\r\n\0"), u_now(), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
 		}
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
@@ -402,7 +405,7 @@ static void pv_process_response_RESET(void)
 {
 	// El server me pide que me resetee de modo de mandar un nuevo init y reconfigurarme
 
-	snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_RX:: Config RESET...\r\n\0" ),u_now());
+	snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::data: Config RESET...\r\n\0" ),u_now());
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
@@ -427,7 +430,7 @@ uint8_t recds_borrados = 0;
 		FF_stat(&pxFFStatBuffer);
 
 		if ( (systemVars.debugLevel & D_GPRS) != 0) {
-			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_DEL:: [wrPtr=%d,rdPtr=%d,delPtr=%d][Free=%d,4del=%d]\r\n\0"),u_now(), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
+			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::data: [wrPtr=%d,rdPtr=%d,delPtr=%d][Free=%d,4del=%d]\r\n\0"),u_now(), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
 			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		}
 

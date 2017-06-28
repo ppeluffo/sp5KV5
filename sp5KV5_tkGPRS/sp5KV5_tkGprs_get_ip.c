@@ -24,7 +24,7 @@ bool exit_flag = false;
 
 	// APN
 	if ( (systemVars.debugLevel & ( D_BASIC + D_GPRS) ) != 0) {
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_IP:: SET APN\r\n\0"), u_now() );
+		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::ip: SET APN\r\n\0"), u_now() );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -41,7 +41,7 @@ bool exit_flag = false;
 	for ( ip_queries = 0; ip_queries < MAX_IP_QUERIES; ip_queries++ ) {
 
 		if ( (systemVars.debugLevel & ( D_GPRS) ) != 0) {
-			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_IP:: ask IP(%d):\r\n\0"), u_now(),ip_queries);
+			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::ip: ask IP(%d):\r\n\0"), u_now(),ip_queries);
 			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		}
 
@@ -64,7 +64,7 @@ bool exit_flag = false;
 				g_printRxBuffer();
 				exit_flag = true;
 				if ( (systemVars.debugLevel & ( D_BASIC + D_GPRS ) ) != 0) {
-					snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_IP:: IP OK.\r\n\0"), u_now() );
+					snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::ip: IP OK.\r\n\0"), u_now() );
 					FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 				}
 				pv_read_ip_assigned();	// Leo e informo cual IP me asigno la red
@@ -85,7 +85,7 @@ bool exit_flag = false;
 	// Aqui es que luego de tantos reintentos no consegui la IP.
 	exit_flag = false;
 	if ( (systemVars.debugLevel & ( D_BASIC + D_GPRS ) ) != 0) {
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_IP:: FAIL !!.\r\n\0"), u_now() );
+		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::ip: FAIL !!.\r\n\0"), u_now() );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 	goto EXIT;
@@ -128,7 +128,7 @@ char c;
 		ts++;
 	}
 	systemVars.dlg_ip_address[i++] = '\0';
-	snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_IP:: IP=[%s]\r\n\0"), u_now(), systemVars.dlg_ip_address);
+	snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::ip: IP=[%s]\r\n\0"), u_now(), systemVars.dlg_ip_address);
 	u_debugPrint( ( D_BASIC + D_GPRS ), gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 }

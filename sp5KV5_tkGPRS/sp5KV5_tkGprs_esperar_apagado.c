@@ -27,7 +27,7 @@ bool exit_flag = false;
 
 	// Secuencia para apagar el modem y dejarlo en modo low power.
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_PWROFF:: Apago modem\r\n\0"), u_now());
+		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::wait: Apago modem\r\n\0"), u_now());
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -59,7 +59,7 @@ bool exit_flag = false;
 		if ( ( systemVars.pwrMode == PWR_DISCRETO ) && ( pv_check_inside_pwrSave() == true ) ) {
 			waiting_time = 600;
 			if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
-				snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_PWRSAVE::\r\n\0"), u_now() );
+				snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::wait: pwrsave\r\n\0"), u_now() );
 				FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 			}
 		}
@@ -93,7 +93,7 @@ LOOP:
 	// Aqui genero el loop de espera.
 
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS_WAIT:: %lu s\r\n\0"), u_now(), waiting_time );
+		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::wait: %lu s\r\n\0"), u_now(), waiting_time );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -141,7 +141,7 @@ static bool pv_check_inside_pwrSave(void)
 RtcTimeType_t rtcDateTime;
 uint16_t now, pwr_save_start, pwr_save_end ;
 
-	if ( systemVars.pwrSave == modoPWRSAVE_OFF ) {
+	if ( systemVars.pwrSave.modo == modoPWRSAVE_OFF ) {
 		// PWR SAVE DESACTIVADO
 		return(false);
 
@@ -150,8 +150,8 @@ uint16_t now, pwr_save_start, pwr_save_end ;
 		// Estoy con PWR SAVE ACTIVADO
 		RTC_read(&rtcDateTime);
 		now = rtcDateTime.hour * 60 + rtcDateTime.min;
-		pwr_save_start = systemVars.pwrSaveStartTime.hour * 60 + systemVars.pwrSaveStartTime.min;
-		pwr_save_end = systemVars.pwrSaveEndTime.hour * 60 + systemVars.pwrSaveEndTime.min;
+		pwr_save_start = systemVars.pwrSave.hora_start.hour * 60 + systemVars.pwrSave.hora_start.min;
+		pwr_save_end = systemVars.pwrSave.hora_fin.hour * 60 + systemVars.pwrSave.hora_fin.min;
 
 		if ( pwr_save_start < pwr_save_end ) {
 			// Caso A:

@@ -28,7 +28,6 @@ static void pv_tka_signal_tasks(void);
 static void pv_tka_print_frame(void);
 static void pv_tka_timer_callback( TimerHandle_t pxTimer );
 static uint16_t pv_tka_set_waiting_time(void);
-static void pv_tka_print_EntryMsg(char *st);
 static void pv_tka_prender_sensores(void);
 static void pv_tka_apagar_sensores(void);
 
@@ -111,7 +110,10 @@ bool retS;
 uint8_t poll_counter;		// Contador de las veces poleadas antes de promediar
 
 // Entry:
-	pv_tka_print_EntryMsg("poleo");
+	if ( (systemVars.debugLevel & D_DATA) != 0) {
+		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::poll:\r\n\0"),u_now() );
+		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+	}
 
 	pv_tka_prender_sensores();
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );	// Espero un settle time de 1s
@@ -137,14 +139,14 @@ uint8_t poll_counter;		// Contador de las veces poleadas antes de promediar
 			} else {
 
 				if ( (systemVars.debugLevel & (D_BASIC + D_DATA) ) != 0) {
-					snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s TKANALOG:: poll ERROR: ch_%02d\r\n\0"), u_now(), channel );
+					snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::poll: ERROR: ch_%02d\r\n\0"), u_now(), channel );
 					FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 				}
 
 			}
 
 			if ( (systemVars.debugLevel & D_DATA) != 0) {
-				snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s TKANALOG:: poll ch_%02d=%.0f\r\n\0"),u_now(), channel, adcRetValue );
+				snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::poll: ch_%02d=%.0f\r\n\0"),u_now(), channel, adcRetValue );
 				FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 			}
 		}
@@ -170,7 +172,10 @@ StatBuffer_t pxFFStatBuffer;
 		return;
 	}
 
-	pv_tka_print_EntryMsg("save_bd");
+	if ( (systemVars.debugLevel & D_DATA) != 0) {
+		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::bd:\r\n\0"),u_now() );
+		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+	}
 
 	// Guardo en BD
 	bytes_written = FF_fwrite( &ANframe, sizeof(ANframe));
@@ -179,7 +184,7 @@ StatBuffer_t pxFFStatBuffer;
 	if ( bytes_written != sizeof(ANframe) ) {
 		// Error de escritura ??
 		if ( (systemVars.debugLevel & (D_BASIC + D_DATA) ) != 0) {
-			snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s TKANALOG:: WR ERROR: (%d)\r\n\0"),u_now(),pxFFStatBuffer.errno);
+			snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::bd: WR ERROR: (%d)\r\n\0"),u_now(),pxFFStatBuffer.errno);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
 
@@ -187,7 +192,7 @@ StatBuffer_t pxFFStatBuffer;
 
 		// Stats de memoria
 		if ( (systemVars.debugLevel & (D_BASIC + D_DATA) ) != 0) {
-			snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff), PSTR("%s TKA:: MEM [%d/%d/%d][%d/%d]\r\n\0"),u_now(), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
+			snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff), PSTR("%s aDATA::bd: MEM [%d/%d/%d][%d/%d]\r\n\0"),u_now(), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
 	}
@@ -198,7 +203,10 @@ static void pv_tka_signal_tasks(void)
 {
 	// Indico a otras tareas que hay datos disponibles frescos.
 
-	pv_tka_print_EntryMsg("signal");
+	if ( (systemVars.debugLevel & D_DATA) != 0) {
+		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::signal:\r\n\0"),u_now() );
+		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+	}
 
 	// tkOutputs
 	while ( xTaskNotify(xHandle_tkOutputs, TK_FRAME_READY , eSetBits ) != pdPASS ) {
@@ -223,14 +231,17 @@ uint8_t i;
 uint16_t D;
 uint8_t channel;
 
-	pv_tka_print_EntryMsg("promedio");
+	if ( (systemVars.debugLevel & D_DATA) != 0) {
+		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::avg:\r\n\0"),u_now() );
+		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+	}
 
 	// Promedio canales analogicos y bateria
 	for ( channel = 0; channel < (NRO_ANALOG_CHANNELS + 1); channel++) {
 		rAIn[channel] /= CICLOS_POLEO;
 
 		if ( (systemVars.debugLevel & D_DATA) != 0) {
-			snprintf_P( aIn_printfBuff,CHAR128,PSTR("%s TKANALOG:: AvgCh[%d]=%.02f\r\n\0"), u_now(), channel, rAIn[channel]);
+			snprintf_P( aIn_printfBuff,CHAR128,PSTR("%s aDATA::avg: AvgCh[%d]=%.02f\r\n\0"), u_now(), channel, rAIn[channel]);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
 
@@ -261,7 +272,7 @@ uint8_t channel;
 	// DEBUG
 	if ( (systemVars.debugLevel & D_DATA) != 0) {
 		for ( channel = 0; channel <= NRO_ANALOG_CHANNELS; channel++) {
-			snprintf_P( aIn_printfBuff,CHAR128,PSTR("%s TKANALOG:: MagCh[%d]=%.02f\r\n\0"), u_now(), channel, rAIn[channel]);
+			snprintf_P( aIn_printfBuff,CHAR128,PSTR("%s aDATA::avg: MagCh[%d]=%.02f\r\n\0"), u_now(), channel, rAIn[channel]);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
 	}
@@ -297,7 +308,7 @@ uint16_t pos = 0;
 	if ( (systemVars.debugLevel & (D_BASIC + D_DATA ) ) != 0) {
 
 		// HEADER
-		pos = snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff), PSTR("%s FRAME:: {" ), u_now() );
+		pos = snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff), PSTR("%s aDATA::frame {" ), u_now() );
 		// timeStamp.
 		pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ),PSTR( "%04d%02d%02d,"),ANframe.rtc.year,ANframe.rtc.month,ANframe.rtc.day );
 		pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR("%02d%02d%02d"),ANframe.rtc.hour,ANframe.rtc.min, ANframe.rtc.sec );
@@ -366,20 +377,11 @@ uint16_t new_wait_time;
 	AN_timer = new_wait_time;
 
 	if ( (systemVars.debugLevel & D_DATA) != 0) {
-		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s TKANALOG:: trace awaiting time %u\r\n\0"), u_now(), new_wait_time );
+		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::time: awaiting time %u\r\n\0"), u_now(), new_wait_time );
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
 
 	return(new_wait_time);
-}
-//------------------------------------------------------------------------------------
-static void pv_tka_print_EntryMsg(char *st)
-{
-
-	if ( (systemVars.debugLevel & D_DATA) != 0) {
-		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s TKANALOG:: trace %s\r\n\0"), u_now(),st);
-		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
-	}
 }
 //------------------------------------------------------------------------------------
 static void pv_tka_prender_sensores(void)
@@ -387,7 +389,11 @@ static void pv_tka_prender_sensores(void)
 
 	IO_sensor_pwr_on();
 	IO_analog_pwr_on();
-	pv_tka_print_EntryMsg("sensores on");
+	if ( (systemVars.debugLevel & D_DATA) != 0) {
+		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::sensors: On\r\n\0"),u_now() );
+		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+	}
+
 }
 //------------------------------------------------------------------------------------
 static void pv_tka_apagar_sensores(void)
@@ -395,8 +401,10 @@ static void pv_tka_apagar_sensores(void)
 
 	IO_sensor_pwr_off();
 	IO_analog_pwr_off();
-	pv_tka_print_EntryMsg("sensores off");
-
+	if ( (systemVars.debugLevel & D_DATA) != 0) {
+		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::sensors: Off\r\n\0"),u_now() );
+		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+	}
 }
 //------------------------------------------------------------------------------------
 int16_t u_readTimeToNextPoll(void)

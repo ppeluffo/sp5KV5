@@ -165,6 +165,12 @@ typedef struct {
 } outputs_t;
 
 typedef struct {
+	uint8_t modo;
+	time_t hora_start;
+	time_t hora_fin;
+} pwrsave_t;
+
+typedef struct {
 	// Variables de trabajo.
 	// Tamanio: 302 bytes para 3 canales.
 
@@ -195,7 +201,7 @@ typedef struct {
 	uint8_t debugLevel;		// Indica que funciones debugear.
 	uint8_t gsmBand;
 
-	uint8_t pwrSave;
+	pwrsave_t pwrSave;
 	time_t pwrSaveStartTime;
 	time_t pwrSaveEndTime;
 
