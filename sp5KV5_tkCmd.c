@@ -111,15 +111,18 @@ static void cmdHelpFunction(void)
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-redial\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-write rtc YYMMDDhhmm\r\n\0"));
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-write\r\n\0"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  rtc YYMMDDhhmm\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  wrkmode [service | monitor {sqe|frame}], pwrmode [continuo|discreto] \r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerpoll, timerdial, dlgid, gsmband, tilt {on|off}, terminal {on|off} \r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  pwrsave [modo {on|off}, {hhmm1}, {hhmm2}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  debuglevel +/-{none,basic,mem,outputs,data,gprs,digital,all} \r\n\0"));
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  debuglevel +/-{none,basic,mem,output,data,gprs,digital,all} \r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  loglevel (none, info, all)\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -129,8 +132,9 @@ static void cmdHelpFunction(void)
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  apn, roaming {on|off}, port, ip, script, passwd\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  outputs modo {off|normal o0 o1 |consigna hhmm_dia hhmm_noche }  \r\n\0"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  save\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs consigna {diurna|nocturna}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -138,7 +142,7 @@ static void cmdHelpFunction(void)
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs vopen{0,1}, vclose{0,1}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  save\r\n\0"));
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs enable,disable,[reset,sleep,pha1,phb1,ena1,enb1](0,1)\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) mcp {devId}{regAddr}{regValue}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -158,9 +162,9 @@ static void cmdHelpFunction(void)
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  ee {addr}{lenght}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) frame,memory,gprs\r\n\0"));
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  defaults \r\n\0"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) frame,memory,gprs\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -309,23 +313,6 @@ StatBuffer_t pxFFStatBuffer;
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  signalQ: csq=%d, dBm=%d\r\n\0"), systemVars.csq, systemVars.dbm );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
-	// TERMINAL FIXED ON
-	if ( systemVars.terminal_on ) {
-		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  terminal=FIX_ON\r\n\0"));
-	} else {
-		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  terminal=normal\r\n\0"));
-	}
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-
-	// TERMINAL PIN
- 	if ( IO_read_terminal_pin() == 1 ) {
- 		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  term=ON\r\n\0"));
- 	} else {
- 		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  term=OFF\r\n\0"));
- 	}
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-
-
 	// SYSTEM ---------------------------------------------------------------------------------------
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR(">System:\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -337,7 +324,6 @@ StatBuffer_t pxFFStatBuffer;
 
 	/* WRK mode (NORMAL / SERVICE) */
 	pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  wrkmode: "));
-	/* WRK mode (NORMAL / SERVICE) */
 	switch (systemVars.wrkMode) {
 	case WK_NORMAL:
 		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("normal\r\n"));
@@ -374,16 +360,21 @@ StatBuffer_t pxFFStatBuffer;
 
 	// PWR SAVE:
 	if ( systemVars.pwrSave.modo ==  modoPWRSAVE_OFF ) {
-		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("  pwrsave=off\r\n\0"));
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  pwrsave=off\r\n\0"));
 	} else {
-		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("  pwrsave=on start[%02d:%02d], end[%02d:%02d]\r\n\0"), systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min, systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min);
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  pwrsave=on start[%02d:%02d], end[%02d:%02d]\r\n\0"), systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min, systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min);
 	}
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	/* Timers */
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerPoll [%ds]: %d\r\n\0"),systemVars.timerPoll, u_readTimeToNextPoll() );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerDial: [%lus]: %li\r\n\0"), systemVars.timerDial, u_readTimeToNextDial() );
+
+	if ( systemVars.timerDial < 600 ) {
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerDial: [%lus]***: %li\r\n\0"), systemVars.timerDial, u_readTimeToNextDial() );
+	} else {
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerDial: [%lus]: %li\r\n\0"), systemVars.timerDial, u_readTimeToNextDial() );
+	}
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	/* DebugLevel */
@@ -405,24 +396,59 @@ StatBuffer_t pxFFStatBuffer;
 	/* TILT */
 	if ( systemVars.tiltEnabled == true ) {
 		pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Tilt: enable"));
+		if ( u_tilt_alarmFired() ) {
+			pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("(TILTd)"));
+		}
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("\r\n\0"));
 	} else {
-		pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Tilt: disabled"));
+		pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Tilt: disabled\r\n\0"));
 	}
-	if ( u_tilt_alarmFired() ) {
-		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("(TILTd)"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
+	// TERMINAL FIXED ON
+	if ( systemVars.terminal_on ) {
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  terminal=FIX_ON\r\n\0"));
+	} else {
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  terminal=normal\r\n\0"));
 	}
-	pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("\r\n"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
+	// TERMINAL PIN
+ 	if ( IO_read_terminal_pin() == 1 ) {
+ 		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  term_pin=ON\r\n\0"));
+ 	} else {
+ 		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  term_pin=OFF\r\n\0"));
+ 	}
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	// OUTPUTS:
-	if ( systemVars.outputs.modo == OUT_OFF ) {
-		pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: OFF\r\n"));
-	} else if ( systemVars.outputs.modo == OUT_NORMAL ) {
-		pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: NORMAL (out0=%d, out1=%d)\r\n"), systemVars.outputs.out0, systemVars.outputs.out1 );
-	} else if (( systemVars.outputs.modo == OUT_CONSIGNA ) && ( systemVars.outputs.consigna_aplicada == CONSIGNA_DIURNA )) {
-		pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: CONSIGNA [diurna] (c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
-	} else if (( systemVars.outputs.modo == OUT_CONSIGNA ) && ( systemVars.outputs.consigna_aplicada == CONSIGNA_NOCTURNA )) {
-		pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: CONSIGNA [nocturna] (c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
+	switch( systemVars.outputs.modo ) {
+	case OUT_OFF:
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: OFF\r\n"));
+		break;
+	case OUT_CONSIGNA:
+		switch( systemVars.outputs.consigna_aplicada ) {
+		case CONSIGNA_DIURNA:
+			snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: CONSIGNA [diurna] (c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
+			break;
+		case CONSIGNA_NOCTURNA:
+			snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: CONSIGNA [nocturna] (c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
+			break;
+		default:
+			snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: CONSIGNA [error] (c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
+			break;
+		}
+		break;
+	case OUT_NORMAL:
+		if (systemVars.pwrMode == PWR_DISCRETO ) {
+			snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: NORMAL*** (out0=%d, out1=%d)\r\n"), systemVars.outputs.out0, systemVars.outputs.out1 );
+		} else {
+			snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: NORMAL (out0=%d, out1=%d)\r\n"), systemVars.outputs.out0, systemVars.outputs.out1 );
+		}
+		break;
+	default:
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: ERROR(%d) (out0=%d, out1=%d)\r\n"), systemVars.outputs.modo, systemVars.outputs.out0, systemVars.outputs.out1 );
+		break;
 	}
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
@@ -782,6 +808,15 @@ uint8_t argc;
 		return;
 	}
 
+	// PWRSAVE
+	if (!strcmp_P( strupr(argv[1]), PSTR("PWRSAVE\0"))) {
+		if (!strcmp_P( strupr(argv[2]), PSTR("ON"))) { u_configPwrSave ( modoPWRSAVE_ON, argv[3], argv[4] ); }
+		if (!strcmp_P( strupr(argv[2]), PSTR("OFF"))) { u_configPwrSave ( modoPWRSAVE_OFF, argv[3], argv[4] ); }
+		pv_snprintfP_OK();
+		return;
+	}
+
+
 	// RTC
 	if (!strcmp_P( strupr(argv[1]), PSTR("RTC\0"))) {
 		retS = RTC_str_to_date(argv[2]);
@@ -800,9 +835,24 @@ uint8_t argc;
 	// OUTPUTS
 	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0"))) {
 		if (!strcmp_P( strupr(argv[2]), PSTR("MODO"))) {
-			retS = u_configOutputs( argv[3],argv[4],argv[5] );
-			retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-			return;
+
+			if (!strcmp_P( strupr(argv[3]), PSTR("OFF"))) {
+				retS = u_configOutputs( OUT_OFF ,argv[4],argv[5] );
+				retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+				return;
+			}
+
+			if (!strcmp_P( strupr(argv[3]), PSTR("CONSIGNA"))) {
+				retS = u_configOutputs( OUT_CONSIGNA ,argv[4],argv[5] );
+				retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+				return;
+			}
+
+			if (!strcmp_P( strupr(argv[3]), PSTR("NORMAL"))) {
+				retS = u_configOutputs( OUT_NORMAL ,argv[4],argv[5] );
+				retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+				return;
+			}
 		}
 
 		// (SM)
@@ -847,6 +897,63 @@ uint8_t argc;
 
 		if (!strcmp_P( strupr(argv[2]), PSTR("VCLOSE1")) && ( systemVars.wrkMode == WK_SERVICE) ) {
 			OUT_close_valve_1();
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// Control individual de los pines
+		// ENABLE
+		if (!strcmp_P( strupr(argv[2]), PSTR("ENABLE")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			OUTPUT_DRV_enable();
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// DISABLE
+		if (!strcmp_P( strupr(argv[2]), PSTR("DISABLE")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			OUTPUT_DRV_disable();
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// RESET
+		if (!strcmp_P( strupr(argv[2]), PSTR("RESET")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			( atoi(argv[3]) == 0 )?  IO_outputs_reset(LOW) :  IO_outputs_reset(HIGH);
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// SLEEP
+		if (!strcmp_P( strupr(argv[2]), PSTR("SLEEP")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			( atoi(argv[3]) == 0 )?  IO_outputs_sleep(LOW) :  IO_outputs_sleep(HIGH);
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// PHA1
+		if (!strcmp_P( strupr(argv[2]), PSTR("PHA1")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			( atoi(argv[3]) == 0 )?  IO_outputs_A1PHASE(LOW) :  IO_outputs_A1PHASE(HIGH);
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// ENABLE_A1
+		if (!strcmp_P( strupr(argv[2]), PSTR("ENA1")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			( atoi(argv[3]) == 0 )?  IO_outputs_A1ENBL(LOW) :  IO_outputs_A1ENBL(HIGH);
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// PHB1
+		if (!strcmp_P( strupr(argv[2]), PSTR("PHB1")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			( atoi(argv[3]) == 0 )?  IO_outputs_B1PHASE(LOW) :  IO_outputs_B1PHASE(HIGH);
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// ENABLE_B1
+		if (!strcmp_P( strupr(argv[2]), PSTR("ENB1")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			( atoi(argv[3]) == 0 )?  IO_outputs_B1ENBL(LOW) :  IO_outputs_B1ENBL(HIGH);
 			pv_snprintfP_OK();
 			return;
 		}
@@ -1232,12 +1339,14 @@ static void pv_cmdSetConsigna(char *s)
 
 	if ((!strcmp_P( strupr(s), PSTR("DIURNA")))) {
 		// set consigna diurna
+		systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
 		OUT_aplicar_consigna_diurna();
 		return;
 	}
 
 	if ((!strcmp_P( strupr(s), PSTR("NOCTURNA")))) {
 		// set consigna nocturna
+		systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
 		OUT_aplicar_consigna_nocturna();
 		return;
 	}

@@ -10,7 +10,7 @@
 static uint8_t pv_paramLoad(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
 static uint8_t pv_paramStore(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
 static uint8_t pv_checkSum ( uint8_t *data,uint16_t sizebytes );
-static void pv_convert_str_to_time_t ( char *time_str, time_t time_struct);
+static void pv_convert_str_to_time_t ( char *time_str, time_t *time_struct);
 
 //----------------------------------------------------------------------------------------
 void u_panic( uint8_t panicCode )
@@ -25,31 +25,26 @@ char msg[16];
 	exit (1);
 }
 //----------------------------------------------------------------------------------------
-bool u_configOutputs( char *modo, char *param1, char *param2 )
+bool u_configOutputs( uint8_t modo, char *param1, char *param2 )
 {
 	// Configura las salidas en el systemVars.
 	// Manda una señal a la tkOutput.
 
-	if ((!strcmp_P( strupr(modo), PSTR("OFF")))) {
+	switch(modo) {
+	case OUT_OFF:
 		systemVars.outputs.modo = OUT_OFF;
-		goto EXIT;
-	}
-
-	if ((!strcmp_P( strupr(modo), PSTR("NORMAL")))) {
+		break;
+	case OUT_CONSIGNA:
+		systemVars.outputs.modo = OUT_CONSIGNA;
+		if ( param1 != NULL ) { pv_convert_str_to_time_t(param1, &systemVars.outputs.consigna_diurna); }
+		if ( param2 != NULL ) { pv_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
+		break;
+	case OUT_NORMAL:
 		systemVars.outputs.modo = OUT_NORMAL;
 		if ( param1 != NULL ) { ( atoi(param1) == 0 )? ( systemVars.outputs.out0 = 0) : (systemVars.outputs.out0 = 1); }
 		if ( param2 != NULL ) { ( atoi(param2) == 0 )? ( systemVars.outputs.out1 = 0) : (systemVars.outputs.out1 = 1); }
-		goto EXIT;
+		break;
 	}
-
-	if ((!strcmp_P( strupr(modo), PSTR("CONSIGNA")))) {
-		systemVars.outputs.modo = OUT_CONSIGNA;
-		if ( param1 != NULL ) { pv_convert_str_to_time_t(param1,systemVars.outputs.consigna_diurna); }
-		if ( param2 != NULL ) { pv_convert_str_to_time_t(param2,systemVars.outputs.consigna_nocturna); }
-		goto EXIT;
-	}
-
-EXIT:
 
 	// tk_Output: notifico en modo persistente. Si no puedo, me voy a resetear por watchdog. !!!!
 	while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
@@ -114,6 +109,10 @@ bool u_configPwrMode(uint8_t pwrMode)
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 	}
 
+	while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	}
+
 	return(true);
 }
 //----------------------------------------------------------------------------------------
@@ -157,7 +156,7 @@ uint16_t tpoll;
 	return(true);
 }
 //------------------------------------------------------------------------------------
-void u_configPwrSave(u08 modoPwrSave, char *s_startTime, char *s_endTime)
+void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 {
 	// Recibe como parametros el modo ( 0,1) y punteros a string con las horas de inicio y fin del pwrsave
 	// expresadas en minutos.
@@ -166,8 +165,9 @@ void u_configPwrSave(u08 modoPwrSave, char *s_startTime, char *s_endTime)
 		taskYIELD();
 
 	systemVars.pwrSave.modo = modoPwrSave;
-	if ( s_startTime != NULL ) { pv_convert_str_to_time_t( s_startTime, systemVars.pwrSave.hora_start); }
-	if ( s_endTime != NULL ) { pv_convert_str_to_time_t( s_endTime, systemVars.pwrSave.hora_fin); }
+
+	if ( s_startTime != NULL ) { pv_convert_str_to_time_t( s_startTime, &systemVars.pwrSave.hora_start); }
+	if ( s_endTime != NULL ) { pv_convert_str_to_time_t( s_endTime, &systemVars.pwrSave.hora_fin); }
 
 	xSemaphoreGive( sem_SYSVars );
 
@@ -230,6 +230,7 @@ uint8_t i;
 	systemVars.ri = 0;
 	//systemVars.debugLevel = D_BASIC;
 	systemVars.wrkMode = WK_NORMAL;
+	systemVars.terminal_on = false;
 
 	// Cuando arranca si la EE no esta inicializada puede dar cualquier cosa.
 	// De este modo controlo el largo de los strings.
@@ -274,6 +275,7 @@ uint8_t channel;
 	systemVars.ri = 0;
 	systemVars.wrkMode = WK_NORMAL;
 	systemVars.pwrMode = PWR_DISCRETO;
+	systemVars.terminal_on = false;
 
 	strncpy_P(systemVars.apn, PSTR("SPYMOVIL.VPNANTEL\0"),APN_LENGTH);
 	systemVars.roaming = false;
@@ -411,7 +413,7 @@ uint8_t checksum=0;
 	return(checksum);
 }
 //------------------------------------------------------------------------------------
-static void pv_convert_str_to_time_t ( char *time_str, time_t time_struct )
+static void pv_convert_str_to_time_t ( char *time_str, time_t *time_struct )
 {
 
 	// Convierte un string hhmm en una estructura time_type que tiene
@@ -420,8 +422,8 @@ static void pv_convert_str_to_time_t ( char *time_str, time_t time_struct )
 uint16_t time_num;
 
 	time_num = atol(time_str);
-	time_struct.hour = (uint8_t) (time_num / 100);
-	time_struct.min = (uint8_t)(time_num % 100);
+	time_struct->hour = (uint8_t) (time_num / 100);
+	time_struct->min = (uint8_t)(time_num % 100);
 
 }
 //------------------------------------------------------------------------------------

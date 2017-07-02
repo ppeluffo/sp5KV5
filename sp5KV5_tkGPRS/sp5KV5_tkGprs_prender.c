@@ -42,7 +42,7 @@ bool exit_flag = false;
 	for ( hw_tries = 0; hw_tries < MAX_HW_TRIES_PWRON; hw_tries++ ) {
 
 		IO_modem_hw_pwr_on();	// Prendo la fuente ( alimento al modem ) HW
-		g_sleep(1);		// Espero 1s que se estabilize la fuente.
+		g_sleep(1);				// Espero 1s que se estabilize la fuente.
 
 		// Reintento prenderlo activando el switch pin
 		for ( sw_tries = 0; sw_tries < MAX_SW_TRIES_PWRON; sw_tries++ ) {
@@ -53,9 +53,12 @@ bool exit_flag = false;
 			}
 
 			// Genero el toggle del switch pin para prenderlo
+			// Debe estar low por mas de 2s
 			IO_modem_sw_switch_high();
-			vTaskDelay( (portTickType)( 500 / portTICK_RATE_MS ) );
+			vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 			IO_modem_sw_switch_low();
+			vTaskDelay( (portTickType)( 2500 / portTICK_RATE_MS ) );
+			IO_modem_sw_switch_high();
 
 			// Espero 10s para interrogarlo
 			g_sleep(10);
@@ -95,7 +98,7 @@ bool exit_flag = false;
 
 		// No prendio luego de MAX_SW_TRIES_PWRON intentos SW. Apago y prendo de nuevo
 		IO_modem_hw_pwr_off();	// Apago la fuente
-		g_sleep(10);		// Espero 10s antes de reintentar
+		g_sleep(10);			// Espero 10s antes de reintentar
 	}
 
 	// Si salgo por aqui es que el modem no prendio luego de todos los reintentos
@@ -109,7 +112,7 @@ bool exit_flag = false;
 	// Exit:
 EXIT:
 
-	// Ajusto la falg modem_prendido ya que termino el ciclo y el micro pueda entrar en sleep.
+	// Ajusto la flag modem_prendido ya que termino el ciclo y el micro pueda entrar en sleep.
 	if ( exit_flag ) {
 		GPRS_stateVars.modem_prendido = true;
 		pv_readImei();		// Leo el IMEI

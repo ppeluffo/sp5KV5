@@ -7,7 +7,7 @@
 
 #include <sp5KV5.h>
 
-static char out_printfBuff[CHAR64];	// Buffer de impresion
+static char out_printfBuff[CHAR128];	// Buffer de impresion
 
 typedef enum { outESPERAR, outCHEQUEAR } t_outStates;
 uint16_t OUT_timer;
@@ -16,6 +16,7 @@ static void pv_out_chequear(void);
 static void pv_check_consignas(void);
 static void pv_check_outputs_normales(void);
 static void pv_init_outputs(void);
+static void pv_init_outputs_off(void);
 static void pv_init_consignas(void);
 static void pv_init_outputs_normales(void);
 
@@ -54,26 +55,29 @@ uint8_t out_state;
 		// La FSM se ejecuta solo si estoy en modo normal. En otros modos no
 		// para que por ej. en modo service pueda probar las salidas.
 
-		if ( systemVars.wrkMode != WK_NORMAL ) {
-			continue;
-		}
+		if ( systemVars.wrkMode == WK_NORMAL ) {
 
-		// Recorro la maquina de estados
-		switch(out_state) {
-		case outCHEQUEAR:
-			pv_out_chequear();
-			out_state = outESPERAR;	// next state
-			break;
-		case outESPERAR:
-			// Expiro el timer: salida normal
-			OUT_timer--;
-			if ( OUT_timer == 0 ) {
-				OUT_timer = 25; 	// Para asegurarme chequear 2 veces por minuto
-				out_state = outCHEQUEAR;
+			// Recorro la maquina de estados
+			switch(out_state) {
+			case outCHEQUEAR:
+				pv_out_chequear();
+				out_state = outESPERAR;	// next state
+				break;
+			case outESPERAR:
+				// Expiro el timer: salida normal
+				OUT_timer--;
+				if ( OUT_timer == 0 ) {
+					OUT_timer = 25; 	// Para asegurarme chequear 2 veces por minuto
+					out_state = outCHEQUEAR;
+				}
+				break;
+			default:
+				// No deberia ocurrir
+				OUT_timer = 5;
+				out_state = outESPERAR;
+				break;
 			}
-			break;
 		}
-
 	}
 }
 //------------------------------------------------------------------------------------
@@ -105,6 +109,7 @@ RtcTimeType_t rtcDateTime;
 			( rtcDateTime.min == systemVars.outputs.consigna_diurna.min )  ) {
 
 		OUT_aplicar_consigna_diurna();
+		systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
 		if ( (systemVars.debugLevel & (D_BASIC + D_OUTPUTS) ) != 0) {
 			snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::check: Consigna Diurna\r\n\0"), u_now() );
 			FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
@@ -116,6 +121,7 @@ RtcTimeType_t rtcDateTime;
 			( rtcDateTime.min == systemVars.outputs.consigna_nocturna.min )  ) {
 
 		OUT_aplicar_consigna_nocturna();
+		systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
 		if ( (systemVars.debugLevel & (D_BASIC + D_OUTPUTS) ) != 0) {
 			snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::check: Consigna Nocturna\r\n\0"), u_now() );
 			FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
@@ -134,7 +140,10 @@ static void pv_check_outputs_normales(void)
 
 	if ( systemVars.pwrMode == PWR_DISCRETO ) {
 		// No deberia entrar nunca aca pero si hay algo mal configurado ...
-		IO_outputs_sleep_on();
+		//if ( (systemVars.debugLevel & D_BASIC ) != 0) {
+		//	snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::config Error: En pwrMode discreto no pueden operar Outputs normales !!!\r\n\0"), u_now() );
+		//	FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
+		//}
 		return;
 	}
 
@@ -148,6 +157,7 @@ static void pv_init_outputs(void)
 
 	switch(systemVars.outputs.modo) {
 	case OUT_OFF:
+		pv_init_outputs_off();
 		break;
 	case OUT_CONSIGNA:
 		pv_init_consignas();
@@ -158,12 +168,28 @@ static void pv_init_outputs(void)
 	}
 }
 //------------------------------------------------------------------------------------
+static void pv_init_outputs_off(void)
+{
+	// Habilitamos al driver
+	OUTPUT_DRV_enable();
+	vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+
+	// Para que acepte las entradas de deshabilitar los bridges
+	OUT0_disable();
+	OUT1_disable();
+
+	// Y lo dejamos durmiendo.
+	OUTPUT_DRV_disable();
+
+}
+//------------------------------------------------------------------------------------
 static void pv_init_consignas(void)
 {
 	// Determino cual consigna corresponde aplicar y la aplico.
 
 RtcTimeType_t rtcDateTime;
 uint16_t now, horaConsNoc, horaConsDia ;
+uint8_t consigna_a_aplicar = 99;
 
 	// Loop:
 	// Hora actual en minutos.
@@ -175,23 +201,23 @@ uint16_t now, horaConsNoc, horaConsDia ;
 	// 0         hhmm1                          hhmm2            24
 	//   nocturna             diurna                 nocturna
 
-	systemVars.outputs.consigna_aplicada = CONSIGNA_OFF;
+	now = rtcDateTime.hour * 60 + rtcDateTime.min;
 	horaConsDia = systemVars.outputs.consigna_diurna.hour * 60 + systemVars.outputs.consigna_diurna.min;
 	horaConsNoc = systemVars.outputs.consigna_nocturna.hour * 60 + systemVars.outputs.consigna_nocturna.min;
 
 	if ( horaConsDia < horaConsNoc ) {
 		// Caso A:
 		if ( now <= horaConsDia ) {
-			systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
+			consigna_a_aplicar = CONSIGNA_NOCTURNA;
 		}
 		// Caso B:
 		if ( ( horaConsDia <= now ) && ( now <= horaConsNoc )) {
-			systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
+			consigna_a_aplicar = CONSIGNA_DIURNA;
 		}
 
 		// Caso C:
 		if ( now > horaConsNoc ) {
-			systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
+			consigna_a_aplicar = CONSIGNA_NOCTURNA;
 		}
 	}
 
@@ -204,29 +230,37 @@ uint16_t now, horaConsNoc, horaConsDia ;
 	if (  horaConsNoc < horaConsDia ) {
 		// Caso A:
 		if ( now <= horaConsNoc ) {
-			systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
+			consigna_a_aplicar = CONSIGNA_DIURNA;
 		}
 		// Caso B:
 		if ( ( horaConsNoc <= now ) && ( now <= horaConsDia )) {
-			systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
+			consigna_a_aplicar = CONSIGNA_NOCTURNA;
 		}
 		// Caso C:
 		if ( now > horaConsDia ) {
-			systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
+			consigna_a_aplicar = CONSIGNA_DIURNA;
 		}
 	}
 
 	// Aplico la consigna
-	switch (systemVars.outputs.consigna_aplicada) {
-	case CONSIGNA_OFF:
+	switch (consigna_a_aplicar) {
+	case 99:
+		// Incompatibilidad: seteo por default.
 		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: ERROR al setear consignas: horas incompatibles\r\n\0"), u_now());
+		systemVars.outputs.modo = OUT_CONSIGNA;
+		systemVars.outputs.consigna_diurna.hour = 05;
+		systemVars.outputs.consigna_diurna.min = 30;
+		systemVars.outputs.consigna_nocturna.hour = 23;
+		systemVars.outputs.consigna_nocturna.min = 30;
 		break;
 	case CONSIGNA_DIURNA:
 		OUT_aplicar_consigna_diurna();
+		systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
 		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: Consigna Diurna\r\n\0"), u_now() );
 		break;
 	case CONSIGNA_NOCTURNA:
 		OUT_aplicar_consigna_nocturna();
+		systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
 		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: Consigna Nocturna\r\n\0"), u_now() );
 		break;
 	}
@@ -241,6 +275,24 @@ uint16_t now, horaConsNoc, horaConsDia ;
 static void pv_init_outputs_normales(void)
 {
 	// Aplica el valor indicado en systemVars a las salidas.
+
+	// Las salidas en modo normal NO se trabajan en pwrMode discreto.
+	if ( systemVars.pwrMode == PWR_DISCRETO ) {
+
+		OUTPUT_DRV_disable();
+
+		if ( (systemVars.debugLevel & D_BASIC ) != 0) {
+			snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: En pwrMode discreto no pueden operar Outputs normales !!!\r\n\0"), u_now() );
+			FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
+		}
+		return;
+	}
+
+	// En otros pwrMode dejamos habilitado el DRV.
+	// Habilitamos al driver
+	OUTPUT_DRV_enable();
+
+	vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
 	( systemVars.outputs.out0 == 0 ) ?	OUT0_off() : OUT0_on();
 	( systemVars.outputs.out1 == 0 ) ?	OUT1_off() : OUT1_on();

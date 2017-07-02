@@ -16,6 +16,8 @@
 #include <stdbool.h>
 #include "sp5Klibs/avrlibdefs.h"
 
+typedef enum { LOW = 0, HIGH } t_low_high;
+
 //#define io_DEBUG
 
 #ifdef io_DEBUG
@@ -91,8 +93,9 @@
 #define IO_modem_hw_pwr_on() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OGPRSPWR ) )
 #define IO_modem_hw_pwr_off() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OGPRSPWR ) )
 
-#define IO_modem_sw_switch_high() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OGPRSSW ) )
-#define IO_modem_sw_switch_low() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OGPRSSW ) )
+// El modem_sw_switch es un transistor por lo tanto invierte la entrada en la salida. !!!
+#define IO_modem_sw_switch_high() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 0, MCP0_GPIO_OGPRSSW ) )
+#define IO_modem_sw_switch_low() 	( MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OGPRSSW ) )
 
 #define IO_set_Q0()		( sbi(Q_PORT, Q0_CTL_PIN))
 #define IO_clear_Q0()	( cbi(Q_PORT, Q0_CTL_PIN))
@@ -100,20 +103,12 @@
 #define IO_set_Q1()		( sbi(Q_PORT, Q1_CTL_PIN))
 #define IO_clear_Q1()	( cbi(Q_PORT, Q1_CTL_PIN))
 
-#define IO_outputs_reset_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_RESET ) )
-#define IO_outputs_reset_off() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_RESET ) )
-#define IO_outputs_sleep_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_SLEEP ) )
-#define IO_outputs_sleep_off() 		( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_SLEEP ) )
-
-#define IO_outputs_A1ENBL_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_ENA1 ) )
-#define IO_outputs_A1ENBL_off() 	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_ENA1 ) )
-#define IO_outputs_B1ENBL_on() 		( MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_ENB1 ) )
-#define IO_outputs_B1ENBL_off() 	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_ENB1 ) )
-
-#define IO_outputs_A1PHASE_on() 	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_PHA1 ) )
-#define IO_outputs_A1PHASE_off()	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_PHA1 ) )
-#define IO_outputs_B1PHASE_on()  	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_PHB1 ) )
-#define IO_outputs_B1PHASE_off()	( MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_PHB1 ) )
+void IO_outputs_reset(t_low_high level);
+void IO_outputs_sleep(t_low_high level);
+void IO_outputs_A1ENBL(t_low_high level);
+void IO_outputs_B1ENBL(t_low_high level);
+void IO_outputs_A1PHASE(t_low_high level);
+void IO_outputs_B1PHASE(t_low_high level);
 
 bool IO_read_pulseInputs( uint8_t *din0, uint8_t *din1 );
 uint8_t IO_read_terminal_pin(void);

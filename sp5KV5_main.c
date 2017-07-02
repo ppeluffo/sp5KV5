@@ -138,7 +138,6 @@ unsigned int i,j;
 	// Inicializacion de modulos de las tareas que deben hacerce antes
 	// de arrancar el FRTOS
 	tkAnalogInit();
-	//tkGprsInit();
 
 	// Creo las tasks
 	xTaskCreate(tkCmd, "CMD", tkCmd_STACK_SIZE, NULL, tkCmd_TASK_PRIORITY,  &xHandle_tkCmd);
@@ -171,9 +170,9 @@ void vApplicationIdleHook( void )
 
 	for(;;) {
 
-//		if ( ( u_modemPwrStatus() == APAGADO) && ( ! u_terminal_is_on() ) && ( systemVars.pwrMode == PWR_DISCRETO)) {
-//			sleep_mode();
-//		}
+		if ( ( u_modem_prendido() ) && ( ! u_terminal_is_on() ) && ( systemVars.pwrMode == PWR_DISCRETO)) {
+			sleep_mode();
+		}
 	}
 
 }

@@ -54,7 +54,7 @@
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
 #define SP5K_REV "5.0.1"
-#define SP5K_DATE "@ 20170625"
+#define SP5K_DATE "@ 20170701"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -123,8 +123,8 @@ typedef enum { PWR_CONTINUO = 0, PWR_DISCRETO } t_pwrMode;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
 typedef enum { D_NONE = 0, D_BASIC = 1, D_DATA = 2, D_GPRS = 4, D_MEM = 8, D_DIGITAL = 16, D_OUTPUTS = 32, D_DEBUG = 64 } t_debug;
 typedef enum { T_APAGADA = 0, T_PRENDIDA = 1 } t_terminalStatus;
-typedef enum { OUT_OFF, OUT_CONSIGNA, OUT_NORMAL } t_outputs;
-typedef enum { CONSIGNA_OFF, CONSIGNA_DIURNA, CONSIGNA_NOCTURNA } t_consigna_aplicada;
+typedef enum { OUT_OFF = 0, OUT_CONSIGNA, OUT_NORMAL } t_outputs;
+typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;
 
 #define NRO_CHANNELS		3
 
@@ -202,8 +202,6 @@ typedef struct {
 	uint8_t gsmBand;
 
 	pwrsave_t pwrSave;
-	time_t pwrSaveStartTime;
-	time_t pwrSaveEndTime;
 
 	// Nombre de los canales
 	char aChName[NRO_CHANNELS][PARAMNAME_LENGTH];
@@ -235,13 +233,13 @@ systemVarsType systemVars,tmpSV;
 //------------------------------------------------------------------------------------
 void u_readDigitalCounters( dinData_t *dIn , bool resetCounters );
 void u_panic( uint8_t panicCode );
-bool u_configOutputs( char *modo, char *param1, char *param2 );
+bool u_configOutputs( uint8_t modo, char *param1, char *param2 );
 bool u_configAnalogCh( uint8_t channel, char *chName, char *s_iMin, char *s_iMax, char *s_mMin, char *s_mMax );
 bool u_configDigitalCh( uint8_t channel, char *chName, char *s_magPP );
 bool u_configPwrMode(uint8_t pwrMode);
 bool u_configTimerPoll(char *s_tPoll);
 bool u_configTimerDial(char *s_tDial);
-void u_configPwrSave(u08 modoPwrSave, char *s_startTime, char *s_endTime);
+void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
 void u_kick_Wdg( uint8_t wdgId );
 bool u_saveSystemParams(void);
 bool u_loadSystemParams(void);

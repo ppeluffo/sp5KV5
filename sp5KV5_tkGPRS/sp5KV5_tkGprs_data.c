@@ -20,6 +20,7 @@ static void pv_trasmitir_dataRecord( void );
 static uint8_t pv_procesar_respuesta(void);
 static void pv_process_response_RESET(void);
 static uint8_t pv_process_response_OK(void);
+static void pv_process_response_OUTS(void);
 static bool pv_check_more_Rcds4Del ( void );
 
 //------------------------------------------------------------------------------------
@@ -379,6 +380,13 @@ uint8_t recds_procesados = 0;
 			return(0);
 		}
 
+		if ( strstr( gprsRx.buffer, "OUTS") != NULL ) {
+			// El sever mando actualizacion de las salidas
+			// Muestro mensaje de respuesta del server.
+			g_printRxBuffer();
+			pv_process_response_OUTS();
+		}
+
 		if ( strstr( gprsRx.buffer, "RX_OK") != NULL ) {
 			// Datos procesados por el server.
 			// Muestro mensaje de respuesta del server.
@@ -437,6 +445,47 @@ uint8_t recds_borrados = 0;
 	}
 
 	return(recds_borrados);
+}
+//------------------------------------------------------------------------------------
+static void pv_process_response_OUTS(void)
+{
+	// Recibi algo del estilo >RX_OK:285:OUTS=1,0.
+	// Extraigo el valor de las salidas y las seteo.
+
+char localStr[32];
+char *stringp;
+char *token;
+char *delim = ",=:><";
+char *p1,*p2;
+char *p, *s;
+uint8_t out0,out1;
+
+	s = FreeRTOS_UART_getFifoPtr(&pdUART0);
+	p = strstr(s, "OUTS");
+	if ( p == NULL ) {
+		return;
+	}
+
+	// Copio el mensaje enviado a un buffer local porque la funcion strsep lo modifica.
+	memset(localStr,'\0',32);
+	memcpy(localStr,p,sizeof(localStr));
+
+	stringp = localStr;
+	token = strsep(&stringp,delim);	//OUTS
+
+	p1 = strsep(&stringp,delim);	// out0
+	out0 = atoi(p1);
+	p2 = strsep(&stringp,delim); 	// out1
+	out1 = atoi(p2);
+
+	if ( (systemVars.debugLevel &  D_GPRS ) != 0) {
+		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::processOUTS: %d %d\r\n\0"), u_now(), out0, out1);
+		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	}
+
+	systemVars.outputs.out0 = out0;
+	systemVars.outputs.out1 = out1;
+
 }
 //------------------------------------------------------------------------------------
 static bool pv_check_more_Rcds4Del ( void )

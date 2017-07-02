@@ -314,7 +314,7 @@ static uint8_t modo = 0;
 
 	val = MCP1_GPPUB;
 	FreeRTOS_ioctl(&pdI2C,ioctl_I2C_SET_BYTEADDRESS,&val, DEBUG_MCP);
-	data = 0xF0; // 0000 1111
+	data = 0xF3; // 1111 0000
 	xBytes = sizeof(data);
 	xReturn = FreeRTOS_write(&pdI2C, &data, xBytes);
 	//
