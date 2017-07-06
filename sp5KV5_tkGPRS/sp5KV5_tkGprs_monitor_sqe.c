@@ -8,6 +8,7 @@
 #include "sp5KV5_tkGprs.h"
 
 static void pv_read_sqe(void);
+static bool pv_procesar_signals_monsqe( void );
 
 //------------------------------------------------------------------------------------
 bool gprs_monitor_sqe(void)
@@ -15,24 +16,19 @@ bool gprs_monitor_sqe(void)
 	// Me quedo en un loop infinito preguntando por el SQE c/10s y
 	// mostrando el resultado.
 
-BaseType_t xResult;
-uint32_t ulNotifiedValue;
 uint8_t MON_timer = 1;
 
+
+	GPRS_stateVars.state = G_MON_SQE;
 
 	while ( systemVars.wrkMode == WK_MONITOR_SQE ) {
 
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-		// Analizo las señales
-		xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 250 / portTICK_RATE_MS ) );
-		if ( xResult == pdTRUE ) {
-
-			if ( ( ulNotifiedValue & TK_PARAM_RELOAD ) != 0 ) {			// Mensaje de reload configuration.
-				return( bool_RESTART );	// Retorna y hace que deba ir a RESTART y leer la nueva configuracion
-			} else if ( ( ulNotifiedValue & TK_REDIAL ) != 0 ) {  	// Mensaje de read frame desde el cmdLine.
-				return( bool_RESTART );	// Idem
-			}
+		// PROCESO LAS SEÑALES
+		if ( pv_procesar_signals_monsqe()) {
+			// Si recibi alguna senal, debo salir.
+			return( bool_RESTART );
 		}
 
 		if ( MON_timer > 0) {	// Espero 1s contando
@@ -45,8 +41,35 @@ uint8_t MON_timer = 1;
 
 	}
 
+
 	// No estoy en modo mon_sqe: permite salir y continuar el flujo
 	return( bool_CONTINUAR );
+}
+//------------------------------------------------------------------------------------
+static bool pv_procesar_signals_monsqe( void )
+{
+	// Estoy prendiendo el modem de modo que solo me interesa
+	// la senal de reload.
+	// Las otras en forma implicita las estoy atendiendo
+
+bool ret_f = false;
+
+	if ( GPRS_stateVars.signal_reload) {
+		// Salgo a reiniciar tomando los nuevos parametros.
+		ret_f = true;
+		goto EXIT;
+	}
+
+	ret_f = false;
+
+EXIT:
+
+	GPRS_stateVars.signal_reload = false;
+	GPRS_stateVars.signal_tilt = false;
+	GPRS_stateVars.signal_redial = false;
+	GPRS_stateVars.signal_frameReady = false;
+
+	return(ret_f);
 }
 //------------------------------------------------------------------------------------
 static void pv_read_sqe(void)

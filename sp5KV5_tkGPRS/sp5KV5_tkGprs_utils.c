@@ -19,14 +19,9 @@ void g_flushRXBuffer(void)
 //------------------------------------------------------------------------------------
 bool u_modem_prendido(void)
 {
-
-	if ( GPRS_stateVars.modem_prendido == true ) {
-		return(true);
-	} else {
-		return(false);
-	}
+	return ( GPRS_stateVars.modem_prendido );
 }
-//--------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------
 char *g_getImei(void)
 {
 	// Devuelve el IMEI leido al prender el modem.

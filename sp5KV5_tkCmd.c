@@ -6,6 +6,7 @@
  */
 
 #include <sp5KV5.h>
+#include "sp5KV5_tkGPRS/sp5KV5_tkGprs.h"
 
 static char cmd_printfBuff[CHAR128];
 char *argv[16];
@@ -190,7 +191,7 @@ static void cmdRedialFunction(void)
 {
 	// Envio un mensaje a la tk_Gprs para que recargue la configuracion y disque al server
 	// Notifico en modo persistente. Si no puedo me voy a resetear por watchdog. !!!!
-	while ( xTaskNotify(xHandle_tkGprs,TK_REDIAL , eSetBits ) != pdPASS ) {
+	while ( xTaskNotify(xHandle_tkGprsRx,TK_REDIAL , eSetBits ) != pdPASS ) {
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 	}
 
@@ -311,6 +312,36 @@ StatBuffer_t pxFFStatBuffer;
 
 	/* CSQ */
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  signalQ: csq=%d, dBm=%d\r\n\0"), systemVars.csq, systemVars.dbm );
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
+	// GPRS STATE
+	pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  state: "));
+	switch (GPRS_stateVars.state) {
+	case G_ESPERA_APAGADO:
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("await_off\r\n"));
+		break;
+	case G_PRENDER:
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("prendiendo\r\n"));
+		break;
+	case G_CONFIGURAR:
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("configurando\r\n"));
+		break;
+	case G_MON_SQE:
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("mon_sqe\r\n"));
+		break;
+	case G_GET_IP:
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("ip\r\n"));
+		break;
+	case G_INIT_FRAME:
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("init frame\r\n"));
+		break;
+	case G_DATA:
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("data\r\n"));
+		break;
+	default:
+		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("ERROR\r\n"));
+		break;
+	}
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	// SYSTEM ---------------------------------------------------------------------------------------

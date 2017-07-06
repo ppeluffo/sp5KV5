@@ -8,7 +8,7 @@
 #include "sp5KV5_tkGprs.h"
 
 static void pv_read_ip_assigned(void);
-
+static bool pv_procesar_signals_getip( bool *exit_flag );
 //------------------------------------------------------------------------------------
 bool gprs_get_ip(void)
 {
@@ -18,9 +18,10 @@ bool gprs_get_ip(void)
 
 uint8_t ip_queries;
 uint8_t check_tryes;
-bool exit_flag = false;
+bool exit_flag = bool_RESTART;
 
 // Entry:
+	GPRS_stateVars.state = G_GET_IP;
 
 	// APN
 	if ( (systemVars.debugLevel & ( D_BASIC + D_GPRS) ) != 0) {
@@ -56,13 +57,19 @@ bool exit_flag = false;
 		check_tryes = 10;
 		while ( check_tryes-- > 0 ) {
 
+			// PROCESO LAS SEÑALES
+			if ( pv_procesar_signals_getip( &exit_flag )) {
+				// Si recibi alguna senal, debo salir.
+				goto EXIT;
+			}
+
 			// Doy tiempo a que responda la red
 			g_sleep(3);
 
 			// Analizo la respuesta
 			if ( strstr( gprsRx.buffer, "E2IPA: 000") != NULL ) {
 				g_printRxBuffer();
-				exit_flag = true;
+				exit_flag = bool_CONTINUAR;
 				if ( (systemVars.debugLevel & ( D_BASIC + D_GPRS ) ) != 0) {
 					snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::ip: IP OK.\r\n\0"), u_now() );
 					FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
@@ -83,7 +90,7 @@ bool exit_flag = false;
 	}
 
 	// Aqui es que luego de tantos reintentos no consegui la IP.
-	exit_flag = false;
+	exit_flag = bool_RESTART;
 	if ( (systemVars.debugLevel & ( D_BASIC + D_GPRS ) ) != 0) {
 		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::ip: FAIL !!.\r\n\0"), u_now() );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
@@ -98,6 +105,33 @@ EXIT:
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PRIVADAS
+//------------------------------------------------------------------------------------
+static bool pv_procesar_signals_getip( bool *exit_flag )
+{
+	// Estoy prendiendo el modem de modo que solo me interesa
+	// la senal de reload.
+	// Las otras en forma implicita las estoy atendiendo
+
+bool ret_f = false;
+
+	if ( GPRS_stateVars.signal_reload) {
+		// Salgo a reiniciar tomando los nuevos parametros.
+		*exit_flag = bool_RESTART;
+		ret_f = true;
+		goto EXIT;
+	}
+
+	ret_f = false;
+
+EXIT:
+
+	GPRS_stateVars.signal_reload = false;
+	GPRS_stateVars.signal_tilt = false;
+	GPRS_stateVars.signal_redial = false;
+	GPRS_stateVars.signal_frameReady = false;
+
+	return(ret_f);
+}
 //------------------------------------------------------------------------------------
 static void pv_read_ip_assigned(void)
 {

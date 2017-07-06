@@ -23,6 +23,8 @@ static uint8_t pv_process_response_OK(void);
 static void pv_process_response_OUTS(void);
 static bool pv_check_more_Rcds4Del ( void );
 
+static bool pv_procesar_signals_data( bool *exit_flag );
+
 //------------------------------------------------------------------------------------
 bool gprs_data(void)
 {
@@ -43,10 +45,10 @@ bool gprs_data(void)
 	// Mientras estoy trasmitiendo datos no atiendo las señales; solo durante la espera en modo
 	// continuo.
 
-BaseType_t xResult;
-uint32_t ulNotifiedValue;
 uint8_t sleep_time;
 bool exit_flag = false;
+
+	GPRS_stateVars.state = G_DATA;
 
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
 		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::data: \r\n\0"), u_now() );
@@ -81,22 +83,10 @@ bool exit_flag = false;
 				sleep_time = 90;
 				while( sleep_time-- > 0 ) {
 
-					// Analizo las señales
-					xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 250 / portTICK_RATE_MS ) );
-					if ( xResult == pdTRUE ) {
-
-						if ( ( ulNotifiedValue & TK_PARAM_RELOAD ) != 0 ) {		// Mensaje de reload configuration.
-							exit_flag = bool_RESTART;							// Retorna y hace que deba ir a RESTART y leer la nueva configuracion
-							goto EXIT;
-						} else if ( ( ulNotifiedValue & TK_REDIAL ) != 0 ) {  	// Mensaje de read frame desde el cmdLine.
-							exit_flag =  bool_RESTART;							// Retorna y avanzo para discar rapido
-							goto EXIT;
-						} else if ( ( ulNotifiedValue & TK_TILT ) != 0 ) {  	// Mensaje de tilt desde tkControl.
-							exit_flag =  bool_RESTART;							// Retorna y avanzo para discar rapido
-							goto EXIT;
-						}  else if ( ( ulNotifiedValue & TK_FRAME_READY ) != 0 ) {  	// Mensaje que hay un frame para trasmitir
-							break;						          					  	// Salgo del ciclo while para trasmitir enseguida
-						}
+					// PROCESO LAS SEÑALES
+					if ( pv_procesar_signals_data( &exit_flag )) {
+						// Si recibi alguna senal, debo salir.
+						goto EXIT;
 					}
 
 					vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
@@ -112,6 +102,48 @@ bool exit_flag = false;
 EXIT:
 	// No espero mas y salgo del estado prender.
 	return(exit_flag);
+}
+//------------------------------------------------------------------------------------
+static bool pv_procesar_signals_data( bool *exit_flag )
+{
+
+bool ret_f = false;
+
+	if ( GPRS_stateVars.signal_reload) {
+		// Salgo a reiniciar tomando los nuevos parametros.
+		*exit_flag = bool_RESTART;
+		ret_f = true;
+		goto EXIT;
+	}
+
+	if ( GPRS_stateVars.signal_tilt) {
+		// Salgo a discar inmediatamente.
+		*exit_flag = bool_RESTART;
+		ret_f = true;
+		goto EXIT;
+	}
+
+	if ( GPRS_stateVars.signal_redial) {
+		// Salgo a discar inmediatamente.
+		*exit_flag = bool_RESTART;
+		ret_f = true;
+		goto EXIT;
+	}
+
+	if ( GPRS_stateVars.signal_frameReady) {
+		goto EXIT;
+	}
+
+	ret_f = false;
+EXIT:
+
+	GPRS_stateVars.signal_reload = false;
+	GPRS_stateVars.signal_tilt = false;
+	GPRS_stateVars.signal_redial = false;
+	GPRS_stateVars.signal_frameReady = false;
+
+	return(ret_f);
+
 }
 //------------------------------------------------------------------------------------
 static bool pv_hay_datos_para_trasmitir(void)
@@ -459,6 +491,7 @@ char *delim = ",=:><";
 char *p1,*p2;
 char *p, *s;
 uint8_t out0,out1;
+bool f_send_signal = false;
 
 	s = FreeRTOS_UART_getFifoPtr(&pdUART0);
 	p = strstr(s, "OUTS");
@@ -483,9 +516,20 @@ uint8_t out0,out1;
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
+	if ( ( systemVars.outputs.out0 != out0 ) || ( systemVars.outputs.out1 != out1 )) {
+		f_send_signal = true;
+	}
+
 	systemVars.outputs.out0 = out0;
 	systemVars.outputs.out1 = out1;
 
+	// Mando una señal a la tarea de OUTPUTS para que procese ensegida el cambio.
+	if ( f_send_signal ) {
+		f_send_signal = false;
+		while ( xTaskNotify(xHandle_tkOutputs, TK_CHANGE_OUTPUTS , eSetBits ) != pdPASS ) {
+			vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+		}
+	}
 }
 //------------------------------------------------------------------------------------
 static bool pv_check_more_Rcds4Del ( void )

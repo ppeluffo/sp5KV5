@@ -170,10 +170,9 @@ void vApplicationIdleHook( void )
 
 	for(;;) {
 
-		if ( ( u_modem_prendido() ) && ( ! u_terminal_is_on() ) && ( systemVars.pwrMode == PWR_DISCRETO)) {
+		if ( ( u_modem_prendido() == false ) && ( u_terminal_is_on() == false) && ( systemVars.pwrMode == PWR_DISCRETO)) {
 			sleep_mode();
 		}
 	}
-
 }
 /*------------------------------------------------------------------------------------*/

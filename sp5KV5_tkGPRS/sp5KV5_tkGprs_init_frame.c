@@ -37,6 +37,8 @@ bool exit_flag = false;
 
 // Entry:
 
+	GPRS_stateVars.state = G_INIT_FRAME;
+
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
 		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::iniframe:\r\n\0"), u_now());
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );

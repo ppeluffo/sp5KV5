@@ -21,9 +21,11 @@ bool gprs_configurar(void)
 	// No atiendo mensajes ya que no requiero parametros operativos.
 	// WATCHDOG: No demoro mas de 2 minutos en este estado
 
-bool exit_flag = false;
+bool exit_flag = bool_RESTART;
 
 // Entry:
+
+	GPRS_stateVars.state = G_CONFIGURAR;
 
 	if ( (systemVars.debugLevel & ( D_GPRS) ) != 0) {
 		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::config:\r\n\0"), u_now() );
@@ -32,21 +34,24 @@ bool exit_flag = false;
 
 // Loop:
 
+	// PROCESO LAS SEÑALES
+	// No hay loops: no las proceso
+
 	pv_gprs_configurar_parametros();		// Configuro parametros operativos.
 
 	if ( ! pv_gprs_configurar_banda() ) {	// Consiguro la banda: Si necesito resetearme
-		exit_flag = false;					// retorna false para salir enseguida
+		exit_flag = bool_RESTART;			// retorna false para salir enseguida
 		goto EXIT;
 	}
 
 	if ( ! pv_gprs_net_attach() ) {			// Intento conectrme a la red
-		exit_flag = false;					// retorna false para salir enseguida
+		exit_flag = bool_RESTART;			// retorna false para salir enseguida
 		goto EXIT;
 	}
 
 	// Estoy conigurado y conectado a la red: mido el sqe
 	pv_gprs_ask_sqe();
-	exit_flag = true;
+	exit_flag = bool_CONTINUAR;
 
 EXIT:
 

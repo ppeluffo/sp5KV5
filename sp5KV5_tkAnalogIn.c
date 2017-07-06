@@ -214,7 +214,7 @@ static void pv_tka_signal_tasks(void)
 	}
 
 	// tkGPRS
-	while ( xTaskNotify(xHandle_tkGprs, TK_FRAME_READY , eSetBits ) != pdPASS ) {
+	while ( xTaskNotify(xHandle_tkGprsRx, TK_FRAME_READY , eSetBits ) != pdPASS ) {
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 	}
 
@@ -406,6 +406,8 @@ static void pv_tka_apagar_sensores(void)
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
 }
+//------------------------------------------------------------------------------------
+// FUNCIONES PUBLICAS
 //------------------------------------------------------------------------------------
 int16_t u_readTimeToNextPoll(void)
 {

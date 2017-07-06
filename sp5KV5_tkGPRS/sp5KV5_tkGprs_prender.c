@@ -8,6 +8,7 @@
 #include "sp5KV5_tkGprs.h"
 
 static void pv_readImei(void);
+static bool pv_procesar_signals_prender( bool *exit_flag );
 
 //------------------------------------------------------------------------------------
 bool gprs_prender(void)
@@ -17,14 +18,16 @@ bool gprs_prender(void)
 	// Mientras lo intento prender no atiendo mensajes ( cambio de configuracion / flooding / Redial )
 
 uint8_t hw_tries, sw_tries;
-bool exit_flag = false;
+bool exit_flag = bool_RESTART;
 
 // Entry:
+
+	GPRS_stateVars.state = G_PRENDER;
 
 	// Debo poner esta flag en true para que el micro no entre en sleep y pueda funcionar el puerto
 	// serial y leer la respuesta del AT del modem.
 	GPRS_stateVars.modem_prendido = true;
-	g_sleep(1);
+	g_sleep(3);
 
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
 		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::prender:\r\n\0"), u_now());
@@ -46,6 +49,7 @@ bool exit_flag = false;
 
 		// Reintento prenderlo activando el switch pin
 		for ( sw_tries = 0; sw_tries < MAX_SW_TRIES_PWRON; sw_tries++ ) {
+
 
 			if ( (systemVars.debugLevel &  D_GPRS ) != 0) {
 				snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::prender: HW=%d,SW=%d\r\n\0"), u_now(), hw_tries, sw_tries);
@@ -81,7 +85,7 @@ bool exit_flag = false;
 				}
 
 				// Respondio OK. Esta prendido; salgo
-				exit_flag = true;
+				exit_flag = bool_CONTINUAR;
 				goto EXIT;
 
 			} else {
@@ -92,8 +96,16 @@ bool exit_flag = false;
 				}
 			}
 
+			// PROCESO LAS SEÑALES
+			if ( pv_procesar_signals_prender( &exit_flag )) {
+				// Si recibi alguna senal, debo salir.
+				goto EXIT;
+			}
+
 			// No prendio: Espero 5s antes de reintentar prenderlo por SW.
 			g_sleep(5);
+
+
 		}
 
 		// No prendio luego de MAX_SW_TRIES_PWRON intentos SW. Apago y prendo de nuevo
@@ -102,28 +114,51 @@ bool exit_flag = false;
 	}
 
 	// Si salgo por aqui es que el modem no prendio luego de todos los reintentos
-	exit_flag = false;
+	exit_flag = bool_RESTART;
 	if ( (systemVars.debugLevel &  D_GPRS ) != 0) {
 		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::prender: FAIL!! Modem No prendio en HW%d y SW%d intentos\r\n\0"), u_now(), MAX_HW_TRIES_PWRON, MAX_SW_TRIES_PWRON);
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
-	goto EXIT;
 
 	// Exit:
 EXIT:
 
 	// Ajusto la flag modem_prendido ya que termino el ciclo y el micro pueda entrar en sleep.
-	if ( exit_flag ) {
-		GPRS_stateVars.modem_prendido = true;
+	if ( exit_flag == bool_CONTINUAR ) {
 		pv_readImei();		// Leo el IMEI
-	} else {
-		GPRS_stateVars.modem_prendido = false;
 	}
 
 	return(exit_flag);
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PRIVADAS
+//------------------------------------------------------------------------------------
+static bool pv_procesar_signals_prender( bool *exit_flag )
+{
+	// Estoy prendiendo el modem de modo que solo me interesa
+	// la senal de reload.
+	// Las otras en forma implicita las estoy atendiendo
+
+bool ret_f = false;
+
+	if ( GPRS_stateVars.signal_reload) {
+		// Salgo a reiniciar tomando los nuevos parametros.
+		*exit_flag = bool_RESTART;
+		ret_f = true;
+		goto EXIT;
+	}
+
+	ret_f = false;
+
+EXIT:
+
+	GPRS_stateVars.signal_reload = false;
+	GPRS_stateVars.signal_tilt = false;
+	GPRS_stateVars.signal_redial = false;
+	GPRS_stateVars.signal_frameReady = false;
+
+	return(ret_f);
+}
 //------------------------------------------------------------------------------------
 static void pv_readImei(void)
 {

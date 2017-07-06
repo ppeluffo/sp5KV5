@@ -190,7 +190,7 @@ static uint8_t tilt_ant = 0;
    			FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 
    			// Mando un mensaje a tkGPRS para que disque inmediatamente
-   			while ( xTaskNotify(xHandle_tkGprs, TK_TILT , eSetBits ) != pdPASS ) {
+   			while ( xTaskNotify(xHandle_tkGprsRx, TK_TILT , eSetBits ) != pdPASS ) {
    				vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
    			}
 

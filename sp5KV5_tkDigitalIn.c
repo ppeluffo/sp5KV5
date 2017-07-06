@@ -62,20 +62,6 @@ void tkDigitalIn(void * pvParameters)
 
 }
 //------------------------------------------------------------------------------------
-void u_readDigitalCounters( dinData_t *dIn , bool resetCounters )
-{
-	// copio los valores de los contadores en la estructura dIn.
-	// Si se solicita, luego se ponen a 0.
-
-	memcpy( dIn, &digIn, sizeof(dinData_t)) ;
-	if ( resetCounters == true ) {
-		digIn.level[0] = 0;
-		digIn.level[1] = 0;
-		digIn.pulses[0] = 0;
-		digIn.pulses[1] = 0;
-	}
-}
-//------------------------------------------------------------------------------------
 static void pv_pollQ(void)
 {
 
@@ -132,5 +118,21 @@ static void pv_clearQ(void)
 
 	IO_set_Q0();
 	IO_set_Q1();
+}
+//------------------------------------------------------------------------------------
+// FUNCIONES PUBLICAS
+//------------------------------------------------------------------------------------
+void u_readDigitalCounters( dinData_t *dIn , bool resetCounters )
+{
+	// copio los valores de los contadores en la estructura dIn.
+	// Si se solicita, luego se ponen a 0.
+
+	memcpy( dIn, &digIn, sizeof(dinData_t)) ;
+	if ( resetCounters == true ) {
+		digIn.level[0] = 0;
+		digIn.level[1] = 0;
+		digIn.pulses[0] = 0;
+		digIn.pulses[1] = 0;
+	}
 }
 //------------------------------------------------------------------------------------

@@ -12,6 +12,7 @@ static int32_t waiting_time;
 
 static bool pv_check_inside_pwrSave(void);
 static void pv_calcular_tiempo_espera(void);
+static bool pv_procesar_signals_espera( bool *exit_flag );
 
 static bool starting_flag = true;
 
@@ -21,11 +22,11 @@ bool gprs_esperar_apagado(void)
 	// Calculo el tiempo a esperar y espero. El intervalo no va a considerar el tiempo
 	// posterior de proceso.
 
-BaseType_t xResult;
-uint32_t ulNotifiedValue;
 bool exit_flag = false;
 
 // Entry:
+
+	GPRS_stateVars.state = G_ESPERA_APAGADO;
 
 	// Secuencia para apagar el modem y dejarlo en modo low power.
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
@@ -55,21 +56,6 @@ bool exit_flag = false;
 
 	// Espera
 	do {
-		// Monitoreo las señales
-		xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 250 / portTICK_RATE_MS ) );
-		if ( xResult == pdTRUE ) {
-
-			if ( ( ulNotifiedValue & TK_PARAM_RELOAD ) != 0 ) {		// Mensaje de reload configuration.
-				exit_flag = bool_RESTART ;							// Retorna y hace que deba ir a RESTART y leer la nueva configuracion
-				goto EXIT;
-			} else if ( ( ulNotifiedValue & TK_REDIAL ) != 0 ) {  	// Mensaje de read frame desde el cmdLine.
-				exit_flag = bool_CONTINUAR ;						// Retorna y avanzo para discar rapido
-				goto EXIT;
-			} else if ( ( ulNotifiedValue & TK_TILT ) != 0 ) {  	// Mensaje de tilt desde tkControl.
-				exit_flag = bool_CONTINUAR ;						// Retorna y avanzo para discar rapido
-				goto EXIT;
-			}
-		}
 
 		// Espero 1s.
 		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
@@ -88,6 +74,12 @@ bool exit_flag = false;
 					waiting_time = 600;
 				}
 			}
+		}
+
+		// PROCESO LAS SEÑALES
+		if ( pv_procesar_signals_espera( &exit_flag )) {
+			// Si recibi alguna senal, debo salir.
+			goto EXIT;
 		}
 
 	} while (waiting_time > 0);
@@ -215,6 +207,52 @@ EXIT:
 
 	return(insidePwrSave_flag);
 
+}
+//------------------------------------------------------------------------------------
+static bool pv_procesar_signals_espera( bool *exit_flag )
+{
+
+bool ret_f = false;
+
+	if ( GPRS_stateVars.signal_reload) {
+		// Salgo a reiniciar tomando los nuevos parametros.
+		*exit_flag = bool_RESTART;
+		ret_f = true;
+		goto EXIT;
+	}
+
+	if ( GPRS_stateVars.signal_tilt) {
+		// Salgo a discar inmediatamente.
+		*exit_flag = bool_CONTINUAR;
+		ret_f = true;
+		goto EXIT;
+	}
+
+	if ( GPRS_stateVars.signal_redial) {
+		// Salgo a discar inmediatamente.
+		*exit_flag = bool_CONTINUAR;
+		ret_f = true;
+		goto EXIT;
+	}
+
+	if ( GPRS_stateVars.signal_frameReady) {
+		// Salgo a discar solo en continuo.
+		if ( systemVars.pwrMode == PWR_CONTINUO ) {
+			*exit_flag = bool_CONTINUAR;
+			ret_f = true;
+			goto EXIT;
+		}
+	}
+
+	ret_f = false;
+EXIT:
+
+	GPRS_stateVars.signal_reload = false;
+	GPRS_stateVars.signal_tilt = false;
+	GPRS_stateVars.signal_redial = false;
+	GPRS_stateVars.signal_frameReady = false;
+
+	return(ret_f);
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS

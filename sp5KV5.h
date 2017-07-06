@@ -54,7 +54,7 @@
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
 #define SP5K_REV "5.0.1"
-#define SP5K_DATE "@ 20170701"
+#define SP5K_DATE "@ 20170706"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -113,6 +113,8 @@ wdgStatus_t wdgStatus;
 #define TK_TILT					0x04	//
 #define TK_FRAME_READY			0x08	//
 #define TK_REDIAL				0x10	//
+#define TK_CHANGE_OUTPUTS		0x20
+
 //------------------------------------------------------------------------------------
 
 xSemaphoreHandle sem_SYSVars;
@@ -231,14 +233,14 @@ systemVarsType systemVars,tmpSV;
 //------------------------------------------------------------------------------------
 // FUNCIONES DE USO GENERAL.
 //------------------------------------------------------------------------------------
-void u_readDigitalCounters( dinData_t *dIn , bool resetCounters );
+// utils
 void u_panic( uint8_t panicCode );
 bool u_configOutputs( uint8_t modo, char *param1, char *param2 );
 bool u_configAnalogCh( uint8_t channel, char *chName, char *s_iMin, char *s_iMax, char *s_mMin, char *s_mMax );
 bool u_configDigitalCh( uint8_t channel, char *chName, char *s_magPP );
 bool u_configPwrMode(uint8_t pwrMode);
-bool u_configTimerPoll(char *s_tPoll);
 bool u_configTimerDial(char *s_tDial);
+bool u_configTimerPoll(char *s_tPoll);
 void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
 void u_kick_Wdg( uint8_t wdgId );
 bool u_saveSystemParams(void);
@@ -246,12 +248,18 @@ bool u_loadSystemParams(void);
 void u_loadDefaults(void);
 char *u_now(void);
 void u_debugPrint(uint8_t debugCode, char *msg, uint16_t size);
+void u_reset(void);
+// tkAnalog
 void u_readDataFrame (frameData_t *dFrame);
 int16_t u_readTimeToNextPoll(void);
-void u_reset(void);
+// tkControl
 bool u_terminal_is_on(void);
 bool u_tilt_alarmFired(void);
+// tkDigital
+void u_readDigitalCounters( dinData_t *dIn , bool resetCounters );
+// tkGprs
 int32_t u_readTimeToNextDial(void);
+bool u_modem_prendido(void);
 
 char nowStr[32];
 char debug_printfBuff[CHAR128];

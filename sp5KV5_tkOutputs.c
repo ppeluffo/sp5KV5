@@ -47,9 +47,15 @@ uint8_t out_state;
 		xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 1000 / portTICK_RATE_MS ) );
 		// Veo si llego un mensaje
 		if ( xResult == pdTRUE ) {
+
 			if ( ( ulNotifiedValue & TK_PARAM_RELOAD ) != 0 ) {			// Mensaje de reload configuration.
 				pv_init_outputs();										// Reflejo los cambios de configuracion
 			}
+
+			if ( ( ulNotifiedValue & TK_CHANGE_OUTPUTS ) != 0 ) {
+				pv_check_outputs_normales();
+			}
+
 		}
 
 		// La FSM se ejecuta solo si estoy en modo normal. En otros modos no
@@ -166,6 +172,7 @@ static void pv_init_outputs(void)
 		pv_init_outputs_normales();
 		break;
 	}
+
 }
 //------------------------------------------------------------------------------------
 static void pv_init_outputs_off(void)

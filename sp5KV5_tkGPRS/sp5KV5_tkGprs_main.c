@@ -31,11 +31,11 @@ RESTART:
 			goto RESTART;
 		}
 
-		if ( ! gprs_prender() ) {	// Intento prenderlo y si no salgo con false
+		if ( gprs_prender() != bool_CONTINUAR )  {	// Intento prenderlo y si no salgo con false
 			goto RESTART;			// y voy directo a APAGARLO
 		}
 
-		if ( ! gprs_configurar() ) {	// Intento configurarlo y si no puedo o debo reiniciarlo ( cambio de
+		if ( gprs_configurar() != bool_CONTINUAR ) {	// Intento configurarlo y si no puedo o debo reiniciarlo ( cambio de
 			goto RESTART;				// banda ) salgo con false y vuelvo a APAGAR
 		}
 
@@ -43,8 +43,8 @@ RESTART:
 			goto RESTART;
 		}
 
-		if ( ! gprs_get_ip()  ) {	// Si no logro una IP debo reiniciarme. Salgo en este caso
-			goto RESTART;			// con false
+		if ( gprs_get_ip() != bool_CONTINUAR  ) {	// Si no logro una IP debo reiniciarme. Salgo en este caso
+			goto RESTART;							// con false
 		}
 
 		if ( ! gprs_init_frame() ) {	// Si no pude enviar exitosamente el INIT vuelvo a APAGAR.
@@ -63,9 +63,12 @@ void tkGprsRx(void * pvParameters)
 	// Esta tarea lee y procesa las respuestas del GPRS. Lee c/caracter recibido y lo va
 	// metiendo en un buffer circular
 
-char c;
 
 ( void ) pvParameters;
+BaseType_t xResult;
+uint32_t ulNotifiedValue;
+char c;
+
 
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
@@ -78,6 +81,21 @@ char c;
 	// loop
 	for( ;; )
 	{
+
+		// Monitoreo las señales y solo prendo las flags correspondientes.
+		xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 10 / portTICK_RATE_MS ) );
+		if ( xResult == pdTRUE ) {
+
+			if ( ( ulNotifiedValue & TK_PARAM_RELOAD ) != 0 ) {		// Mensaje de reload configuration.
+				GPRS_stateVars.signal_reload = true;
+			} else if ( ( ulNotifiedValue & TK_REDIAL ) != 0 ) {  	// Mensaje de read frame desde el cmdLine.
+				GPRS_stateVars.signal_redial = true;
+			} else if ( ( ulNotifiedValue & TK_TILT ) != 0 ) {  	// Mensaje de tilt desde tkControl.
+				GPRS_stateVars.signal_tilt = true;
+			} else if ( ( ulNotifiedValue & TK_FRAME_READY ) != 0 ) {  	// Mensaje de tilt desde tkControl.
+				GPRS_stateVars.signal_frameReady = true;
+			}
+		}
 
 		// el read se bloquea 50ms. lo que genera la espera.
 		while ( FreeRTOS_read( &pdUART0, &c, 1 ) == 1 ) {
