@@ -329,10 +329,12 @@ StatBuffer_t pxFFStatBuffer;
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR(",%s=%.2f"),systemVars.aChName[channel],Aframe.analogIn[channel] );
 	}
+
 	// Datos digitales
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
-		pos += snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ), PSTR(",%sP=%.02f"), systemVars.dChName[channel],Aframe.dIn.pulses[channel] );
+		pos += snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ), PSTR(",%s_p=%d,%s_t=%.1f"), systemVars.dChName[channel],Aframe.dIn.pulse_count[channel],systemVars.dChName[channel],Aframe.dIn.pulse_period[channel] );
 	}
+
 	// Bateria
 	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR(",bt=%.2f"),Aframe.batt );
 

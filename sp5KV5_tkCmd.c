@@ -99,7 +99,7 @@ static void cmdHelpFunction(void)
 {
 
 	memset( &cmd_printfBuff, '\0', sizeof(cmd_printfBuff));
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("\r\nSpymovil %s %s %dch %s %s\r\n\0"), SP5K_MODELO, SP5K_VERSION, NRO_CHANNELS, SP5K_REV, SP5K_DATE);
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("\r\nSpymovil %s %s %dch %s %s\r\n\0"), SP5K_MODELO, SP5K_VERSION, NRO_ANALOG_CHANNELS, SP5K_REV, SP5K_DATE);
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("Available commands are:\r\n\0"));
@@ -205,9 +205,11 @@ uint16_t pos;
 uint8_t channel;
 frameData_t Cframe;
 StatBuffer_t pxFFStatBuffer;
+float q_calc1 = 0.0;
+float q_calc2 = 0.0;
 
 	memset( &cmd_printfBuff, '\0', sizeof(cmd_printfBuff));
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("\r\nSpymovil %s %s %dch %s %s\r\n\0"), SP5K_MODELO, SP5K_VERSION, NRO_CHANNELS, SP5K_REV, SP5K_DATE);
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("\r\nSpymovil %s %s %dch %s %s\r\n\0"), SP5K_MODELO, SP5K_VERSION, NRO_ANALOG_CHANNELS, SP5K_REV, SP5K_DATE);
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	// Last reset info
@@ -491,15 +493,16 @@ StatBuffer_t pxFFStatBuffer;
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  batt{0-15V}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
-	for ( channel = 0; channel < NRO_CHANNELS; channel++) {
+	/* Configuracion de canales analogicos */
+	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  a%d{%d-%dmA/%d-%.02f}(%s)\r\n\0"),channel, systemVars.Imin[channel],systemVars.Imax[channel],systemVars.Mmin[channel],systemVars.Mmax[channel], systemVars. aChName[channel] );
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	}
 	/* Configuracion de canales digitales */
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  d0{%.02f p/p} (%s)\r\n\0"), systemVars.magPP[0],systemVars.dChName[0]);
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  d1{%.02f p/p} (%s)\r\n\0"), systemVars.magPP[1],systemVars.dChName[1]);
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  d%d{%.02f p/p} (%s)\r\n\0"), channel, systemVars.magPP[channel],systemVars.dChName[channel]);
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	}
 
 	/* VALUES --------------------------------------------------------------------------------------- */
 	memset(&Cframe,'\0', sizeof(frameData_t));
@@ -512,14 +515,36 @@ StatBuffer_t pxFFStatBuffer;
 	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff),PSTR( "%04d%02d%02d,"),Cframe.rtc.year,Cframe.rtc.month,Cframe.rtc.day );
 	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("%02d%02d%02d,"),Cframe.rtc.hour,Cframe.rtc.min, Cframe.rtc.sec );
 	// Valores analogicos
-	for ( channel = 0; channel < NRO_CHANNELS; channel++) {
+	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("%s=%.02f,"),systemVars.aChName[channel],Cframe.analogIn[channel] );
 	}
+	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("\r\n\0") );
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
 	// Valores digitales
-	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("%sP=%.02f,%sL=%d,"), systemVars.dChName[0],Cframe.dIn.pulses[0],systemVars.dChName[0],Cframe.dIn.level[0]);
-	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("%sP=%.02f,%sL=%d,"), systemVars.dChName[1],Cframe.dIn.pulses[1],systemVars.dChName[1],Cframe.dIn.level[1]);
+	pos = snprintf_P( cmd_printfBuff, sizeof(cmd_printfBuff), PSTR("  "));
+	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
+		// caudal calculado en base a pulsos.
+		// * systemVars.magPP[channel]: volumen en 1 pulso
+		// * Cframe.dIn.pulse_period[channel]: Cantidad de pulsos en timerPoll
+		// * Cframe.dIn.pulse_period[channel] * 3600 / systemVars.timerpoll: cantidad interpolada de pulsos por hora
+		// * q_calc1: volumen en 1 hora.
+		q_calc1 = Cframe.dIn.pulse_count[channel] * systemVars.magPP[channel] * 3600 / systemVars.timerPoll;
+		q_calc2 = 0;
+		if ( Cframe.dIn.pulse_period[channel] != 0 ) {
+			// Caudal calculado en base al tiempo del periodo de 1 pulso
+			// * systemVars.magPP[channel]: volumen en 1 pulso
+			// * Cframe.dIn.pulse_period[channel]: tiempo en secs de 1 pulso
+			// * q_calc2: volumen en mt3 en 1 hora.
+			q_calc2 = systemVars.magPP[channel] * 3600 / Cframe.dIn.pulse_period[channel];
+		}
+		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s:[p=%d,Qp=%.1f,dt=%.1f,Qt=%.1f] "), systemVars.dChName[channel],Cframe.dIn.pulse_count[channel],q_calc1, Cframe.dIn.pulse_period[channel],q_calc2 );
+	}
+	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("\r\n\0") );
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
 	// Bateria
-	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("bt=%.02f\r\n\0"),Cframe.batt );
+	snprintf_P( cmd_printfBuff, sizeof(cmd_printfBuff), PSTR("  bt=%.02f\r\n\0"),Cframe.batt );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 }
@@ -1353,11 +1378,15 @@ uint16_t rcds = 0;
 		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ),PSTR( "%04d%02d%02d,"),Aframe.rtc.year,Aframe.rtc.month,Aframe.rtc.day );
 		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%02d%02d%02d,"),Aframe.rtc.hour,Aframe.rtc.min, Aframe.rtc.sec );
 
-		for ( channel = 0; channel < NRO_CHANNELS; channel++) {
+		for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 			pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s=%.2f,"),systemVars.aChName[channel],Aframe.analogIn[channel] );
 		}
-		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%sP=%.2f,"), systemVars.dChName[0],Aframe.dIn.pulses[0] );
-		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%sP=%.2f,"), systemVars.dChName[1],Aframe.dIn.pulses[1] );
+
+		// Datos digitales
+		for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
+			pos += snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ), PSTR(",%s_p=%d,%s_t=%.02f"), systemVars.dChName[channel],Aframe.dIn.pulse_count[channel],systemVars.dChName[channel],Aframe.dIn.pulse_period[channel] );
+		}
+
 		// Bateria
 		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR(",bt=%.2f}\r\n\0"),Aframe.batt );
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );

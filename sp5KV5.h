@@ -54,13 +54,13 @@
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
 #define SP5K_REV "5.0.1"
-#define SP5K_DATE "@ 20170706"
+#define SP5K_DATE "@ 20170710"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
 
-#define NRO_ANALOG_CHANNELS	3
-#define NRO_DIGITAL_CHANNELS 2
+#define NRO_ANALOG_CHANNELS		3
+#define NRO_DIGITAL_CHANNELS 	2
 
 #define CHAR64		64
 #define CHAR128	 	128
@@ -128,8 +128,6 @@ typedef enum { T_APAGADA = 0, T_PRENDIDA = 1 } t_terminalStatus;
 typedef enum { OUT_OFF = 0, OUT_CONSIGNA, OUT_NORMAL } t_outputs;
 typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;
 
-#define NRO_CHANNELS		3
-
 #define DLGID_LENGTH		12
 #define APN_LENGTH			32
 #define PORT_LENGTH			7
@@ -144,18 +142,17 @@ typedef struct {
 } time_t;
 
 typedef struct {
-	uint8_t level[2];				// 2
-	double pulses[2];				// 8
-} dinData_t;		// 14 bytes
+	uint16_t pulse_count[NRO_DIGITAL_CHANNELS];			// 8
+	float pulse_period[NRO_DIGITAL_CHANNELS];			// 8
+} dinData_t;		// 16 bytes
 
 typedef struct {
 	// size = 7+5+5+4+3*4+1 = 33 bytes
-	RtcTimeType_t rtc;				// 7
-	dinData_t dIn;					// 12
-	double analogIn[NRO_CHANNELS];	// 12
-	double batt;					// 4
-
-} frameData_t;	// 38 bytes
+	RtcTimeType_t rtc;						// 7
+	double analogIn[NRO_ANALOG_CHANNELS];	// 12
+	dinData_t dIn;							// 16
+	double batt;							// 4
+} frameData_t;	// 39 bytes
 
 typedef struct {
 	uint8_t modo;
@@ -206,17 +203,17 @@ typedef struct {
 	pwrsave_t pwrSave;
 
 	// Nombre de los canales
-	char aChName[NRO_CHANNELS][PARAMNAME_LENGTH];
+	char aChName[NRO_ANALOG_CHANNELS][PARAMNAME_LENGTH];
 	char dChName[2][PARAMNAME_LENGTH];
 
 	// Configuracion de Canales analogicos
-	uint8_t Imin[NRO_CHANNELS];				// Coeficientes de conversion de I->magnitud (presion)
-	uint8_t Imax[NRO_CHANNELS];
-	uint8_t Mmin[NRO_CHANNELS];
-	double Mmax[NRO_CHANNELS];
+	uint8_t Imin[NRO_ANALOG_CHANNELS];				// Coeficientes de conversion de I->magnitud (presion)
+	uint8_t Imax[NRO_ANALOG_CHANNELS];
+	uint8_t Mmin[NRO_ANALOG_CHANNELS];
+	double Mmax[NRO_ANALOG_CHANNELS];
 
 	// Configuracion de canales digitales
-	double magPP[2];
+	double magPP[NRO_DIGITAL_CHANNELS];		// pulsos por mt3.
 
 	bool roaming;
 
@@ -256,7 +253,7 @@ int16_t u_readTimeToNextPoll(void);
 bool u_terminal_is_on(void);
 bool u_tilt_alarmFired(void);
 // tkDigital
-void u_readDigitalCounters( dinData_t *dIn , bool resetCounters );
+void u_readCaudalesInstantaneos( float *Q0, float *Q1 );
 // tkGprs
 int32_t u_readTimeToNextDial(void);
 bool u_modem_prendido(void);

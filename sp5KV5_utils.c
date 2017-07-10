@@ -288,7 +288,7 @@ uint8_t channel;
 	systemVars.timerDial = 1800;		// Transmito c/3 hs.
 
 	// Todos los canales quedan por default en 0-20mA, 0-6k.
-	for ( channel = 0; channel < NRO_CHANNELS ; channel++) {
+	for ( channel = 0; channel < NRO_ANALOG_CHANNELS ; channel++) {
 		systemVars.Imin[channel] = 0;
 		systemVars.Imax[channel] = 20;
 		systemVars.Mmin[channel] = 0;

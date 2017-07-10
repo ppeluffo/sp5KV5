@@ -279,8 +279,10 @@ uint8_t channel;
 
 	// Armo el frame.
 	memset(&ANframe,'\0', sizeof(frameData_t));
+
 	// Agrego la hora
 	RTC_read(&ANframe.rtc);
+
 	// Agrego los canales analogicos
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		ANframe.analogIn[channel] = rAIn[channel];
@@ -291,10 +293,6 @@ uint8_t channel;
 
 	// Agrego los canales digital ( y reseteo los contadores )
 	u_readDigitalCounters( &ANframe.dIn, true );
-	// Convierto los pulsos a los valores de la magnitud.
-	for ( i = 0; i < NRO_DIGITAL_CHANNELS; i++ ) {
-		ANframe.dIn.pulses[i] *=  systemVars.magPP[i];
-	}
 
 }
 //------------------------------------------------------------------------------------
@@ -317,10 +315,12 @@ uint16_t pos = 0;
 		for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 			pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s=%.02f"),systemVars.aChName[channel],ANframe.analogIn[channel] );
 		}
+
 		// Valores digitales
 		for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-			pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%sP=%.02f"), systemVars.dChName[channel],ANframe.dIn.pulses[channel] );
+			pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s_p=%d,%s_t=%.02f"), systemVars.dChName[channel],ANframe.dIn.pulse_count[channel], systemVars.dChName[channel],ANframe.dIn.pulse_period[channel] );
 		}
+
 		// Bateria
 		pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",bt=%.02f"),ANframe.batt );
 

@@ -16,6 +16,18 @@
  *
  * !! Agregar el salir automaticamente luego de 30 mins del modo service.
  *
+ * V5.0.1:
+ * Modificaciones mayores.
+ * 1- Dejo de lado la implementacion de FSM ya que hace imposible de entender el programa.
+ *    Programo de modo convencional
+ *    Genero una capa de drivers y otra de librerias.
+ *    La aplicacion accede al HW por medio de llamadas a las librerias y/o FRTOS-IO
+ * 2- SALIDAS: no considero mas a consignas sino que uso el concepto de salidas, las cuales pueden
+ *    operar en modo consigna o normales
+ * 3- Reescribo toda la tkGPRS para hacelo mas modular. Es la unica que no tiene wdg.
+ * 4- DIGITAL: considero que solo mido caudales con los pulsos y cambio la forma de calcular el caudal
+ *    instantaneo para que sea mas exacto.
+ *
  * V4.1.6:
  * Cambio la velocidad del puerto serial de consola para que trabaje a 9600 y asi poder
  * usar el bootloader.
