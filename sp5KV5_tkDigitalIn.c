@@ -95,6 +95,13 @@ static void pv_update_clock(uint8_t channel)
 	// El criterio es que lo menos que mido es 1mt3/h. Si paso este tiempo y no llego
 	// nada, es que no hay agua y por lo tanto dT = 0.
 
+	// Por si hay problemas de configuracion.
+	if ( systemVars.magPP[channel] == 0 ) {
+		pv_Qdata.dT[channel] = 0.0;
+		pv_Qdata.clock[channel] = 0;
+		return;
+	}
+
 	if ( pv_Qdata.clock[channel] > ( systemVars.magPP[channel] * 3600 ) ) {
 		pv_Qdata.dT[channel] = 0.0;
 		pv_Qdata.clock[channel] = 0;
@@ -198,6 +205,33 @@ void u_readDigitalCounters( dinData_t *dIn , bool resetCounters )
 	dIn->pulse_count[1] = pv_Qdata.pulsos[1];
 	dIn->pulse_period[0] = pv_Qdata.dT[0];
 	dIn->pulse_period[1] = pv_Qdata.dT[1];
+
+	// Calculo los caudales
+	dIn->caudal[0] = 0;
+	if ( pv_Qdata.pulsos[0] > 20 ) {
+		// Calculo el caudal por pulsos
+		dIn->caudal[0] = pv_Qdata.pulsos[0] * systemVars.magPP[0] * 3600 / systemVars.timerPoll;
+		dIn->metodo_medida[0] = 'p';
+	} else {
+		// Calculo el caudal por delta_T
+		if ( (systemVars.magPP[0] != 0) && ( dIn->pulse_period[0] != 0 ) ) {
+			dIn->caudal[0] = systemVars.magPP[0] * 3600 / dIn->pulse_period[0];
+		}
+		dIn->metodo_medida[0] = 't';
+	}
+
+	dIn->caudal[1] = 0;
+	if ( pv_Qdata.pulsos[1] > 20 ) {
+		// Calculo el caudal por pulsos
+		dIn->caudal[1] = pv_Qdata.pulsos[1] * systemVars.magPP[1] * 3600 / systemVars.timerPoll;
+		dIn->metodo_medida[1] = 'p';
+	} else {
+		// Calculo el caudal por delta_T
+		if ( (systemVars.magPP[1] != 0) && ( dIn->pulse_period[1] != 0 ) ) {
+			dIn->caudal[1] = systemVars.magPP[1] * 3600 / dIn->pulse_period[1];
+		}
+		dIn->metodo_medida[1] = 't';
+	}
 
 	if ( resetCounters == true ) {
 		pv_Qdata.pulsos[0] = 0;

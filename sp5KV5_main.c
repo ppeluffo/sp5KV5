@@ -27,6 +27,10 @@
  * 3- Reescribo toda la tkGPRS para hacelo mas modular. Es la unica que no tiene wdg.
  * 4- DIGITAL: considero que solo mido caudales con los pulsos y cambio la forma de calcular el caudal
  *    instantaneo para que sea mas exacto.
+ *    El tema es que cuando hay muchos pulsos, el metodo de los pulsos es mejor. Cuando hay pocos, el
+ *    metodo del tiempo es mejor.
+ *    La solucion es usar ambos, cuando la cantidad de pulsos por intervalo es menor a 20 ( 1 pulso de error )
+ *    es el 5%, uso tiempo, si es mayor uso pulsos.
  *
  * V4.1.6:
  * Cambio la velocidad del puerto serial de consola para que trabaje a 9600 y asi poder

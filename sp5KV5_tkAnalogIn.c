@@ -318,7 +318,9 @@ uint16_t pos = 0;
 
 		// Valores digitales
 		for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-			pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s_p=%d,%s_t=%.02f"), systemVars.dChName[channel],ANframe.dIn.pulse_count[channel], systemVars.dChName[channel],ANframe.dIn.pulse_period[channel] );
+		//	pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s_p=%d,%s_t=%.02f"), systemVars.dChName[channel],ANframe.dIn.pulse_count[channel], systemVars.dChName[channel],ANframe.dIn.pulse_period[channel] );
+			pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s=%.02f"), systemVars.dChName[channel],ANframe.dIn.caudal[channel] );
+
 		}
 
 		// Bateria

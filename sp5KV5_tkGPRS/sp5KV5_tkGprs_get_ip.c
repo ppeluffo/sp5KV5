@@ -83,6 +83,7 @@ bool exit_flag = bool_RESTART;
 				// Error: salgo del loop de espera y voy a reintentar dar el comando
 				break;
 			}
+
 		}
 
 		// Espero 5s antes de dar el comando AT de nuevo

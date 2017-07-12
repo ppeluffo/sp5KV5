@@ -88,7 +88,13 @@ bool u_configDigitalCh( uint8_t channel, char *chName, char *s_magPP )
 		memcpy( systemVars.dChName[channel], chName , ( PARAMNAME_LENGTH - 1 ));
 	}
 
-	if ( s_magPP != NULL ) { systemVars.magPP[channel] = atof(s_magPP); }
+	if ( s_magPP != NULL ) {
+		if ( atof(s_magPP) == 0 ) {
+			systemVars.magPP[channel] = 0.1;
+		} else {
+			systemVars.magPP[channel] = atof(s_magPP);
+		}
+	}
 
 	xSemaphoreGive( sem_SYSVars );
 	return(true);

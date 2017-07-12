@@ -518,33 +518,41 @@ float q_calc2 = 0.0;
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("%s=%.02f,"),systemVars.aChName[channel],Cframe.analogIn[channel] );
 	}
-	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("\r\n\0") );
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+//	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("\r\n\0") );
+//	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	// Valores digitales
-	pos = snprintf_P( cmd_printfBuff, sizeof(cmd_printfBuff), PSTR("  "));
+//	pos = snprintf_P( cmd_printfBuff, sizeof(cmd_printfBuff), PSTR("  "));
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
 		// caudal calculado en base a pulsos.
 		// * systemVars.magPP[channel]: volumen en 1 pulso
 		// * Cframe.dIn.pulse_period[channel]: Cantidad de pulsos en timerPoll
 		// * Cframe.dIn.pulse_period[channel] * 3600 / systemVars.timerpoll: cantidad interpolada de pulsos por hora
 		// * q_calc1: volumen en 1 hora.
-		q_calc1 = Cframe.dIn.pulse_count[channel] * systemVars.magPP[channel] * 3600 / systemVars.timerPoll;
-		q_calc2 = 0;
-		if ( Cframe.dIn.pulse_period[channel] != 0 ) {
-			// Caudal calculado en base al tiempo del periodo de 1 pulso
-			// * systemVars.magPP[channel]: volumen en 1 pulso
-			// * Cframe.dIn.pulse_period[channel]: tiempo en secs de 1 pulso
-			// * q_calc2: volumen en mt3 en 1 hora.
-			q_calc2 = systemVars.magPP[channel] * 3600 / Cframe.dIn.pulse_period[channel];
-		}
-		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s:[p=%d,Qp=%.1f,dt=%.1f,Qt=%.1f] "), systemVars.dChName[channel],Cframe.dIn.pulse_count[channel],q_calc1, Cframe.dIn.pulse_period[channel],q_calc2 );
+
+//		q_calc1 = 0;
+//		if ( (systemVars.magPP[channel] != 0) && ( systemVars.timerPoll != 0 ) ) {
+//			q_calc1 = Cframe.dIn.pulse_count[channel] * systemVars.magPP[channel] * 3600 / systemVars.timerPoll;
+//		}
+
+		// Caudal calculado en base al tiempo del periodo de 1 pulso
+		// * systemVars.magPP[channel]: volumen en 1 pulso
+		// * Cframe.dIn.pulse_period[channel]: tiempo en secs de 1 pulso
+		// * q_calc2: volumen en mt3 en 1 hora.
+//		q_calc2 = 0;
+//		if ( (systemVars.magPP[channel] != 0) && ( Cframe.dIn.pulse_period[channel] != 0 ) ) {
+//			q_calc2 = systemVars.magPP[channel] * 3600 / Cframe.dIn.pulse_period[channel];
+//		}
+//		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s:[p=%d,Qp=%.1f,dt=%.1f,Qt=%.1f] "), systemVars.dChName[channel],Cframe.dIn.pulse_count[channel],q_calc1, Cframe.dIn.pulse_period[channel],q_calc2 );
+
+		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s=%.1f(%c),"), systemVars.dChName[channel],Cframe.dIn.caudal[channel],Cframe.dIn.metodo_medida[channel] );
+
 	}
-	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("\r\n\0") );
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+//	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("\r\n\0") );
+//	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	// Bateria
-	snprintf_P( cmd_printfBuff, sizeof(cmd_printfBuff), PSTR("  bt=%.02f\r\n\0"),Cframe.batt );
+	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("bt=%.02f\r\n\0"),Cframe.batt );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 }
@@ -926,9 +934,9 @@ uint8_t argc;
 
 		if (!strcmp_P( strupr(argv[2]), PSTR("CONSIGNA")) && ( systemVars.wrkMode == WK_SERVICE) ) {
 			pv_cmdSetConsigna( (argv[3]) );
-			while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
-				vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-			}
+//			while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
+//				vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+//			}
 			pv_snprintfP_OK();
 			return;
 		}

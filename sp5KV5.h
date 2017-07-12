@@ -54,7 +54,7 @@
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
 #define SP5K_REV "5.0.1"
-#define SP5K_DATE "@ 20170710"
+#define SP5K_DATE "@ 20170712"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -144,6 +144,8 @@ typedef struct {
 typedef struct {
 	uint16_t pulse_count[NRO_DIGITAL_CHANNELS];			// 8
 	float pulse_period[NRO_DIGITAL_CHANNELS];			// 8
+	float caudal[NRO_DIGITAL_CHANNELS];					// 8
+	char metodo_medida[NRO_DIGITAL_CHANNELS];			// 2
 } dinData_t;		// 16 bytes
 
 typedef struct {
