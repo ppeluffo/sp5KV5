@@ -205,8 +205,6 @@ uint16_t pos;
 uint8_t channel;
 frameData_t Cframe;
 StatBuffer_t pxFFStatBuffer;
-float q_calc1 = 0.0;
-float q_calc2 = 0.0;
 
 	memset( &cmd_printfBuff, '\0', sizeof(cmd_printfBuff));
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("\r\nSpymovil %s %s %dch %s %s\r\n\0"), SP5K_MODELO, SP5K_VERSION, NRO_ANALOG_CHANNELS, SP5K_REV, SP5K_DATE);
@@ -518,38 +516,10 @@ float q_calc2 = 0.0;
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("%s=%.02f,"),systemVars.aChName[channel],Cframe.analogIn[channel] );
 	}
-//	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("\r\n\0") );
-//	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-
 	// Valores digitales
-//	pos = snprintf_P( cmd_printfBuff, sizeof(cmd_printfBuff), PSTR("  "));
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		// caudal calculado en base a pulsos.
-		// * systemVars.magPP[channel]: volumen en 1 pulso
-		// * Cframe.dIn.pulse_period[channel]: Cantidad de pulsos en timerPoll
-		// * Cframe.dIn.pulse_period[channel] * 3600 / systemVars.timerpoll: cantidad interpolada de pulsos por hora
-		// * q_calc1: volumen en 1 hora.
-
-//		q_calc1 = 0;
-//		if ( (systemVars.magPP[channel] != 0) && ( systemVars.timerPoll != 0 ) ) {
-//			q_calc1 = Cframe.dIn.pulse_count[channel] * systemVars.magPP[channel] * 3600 / systemVars.timerPoll;
-//		}
-
-		// Caudal calculado en base al tiempo del periodo de 1 pulso
-		// * systemVars.magPP[channel]: volumen en 1 pulso
-		// * Cframe.dIn.pulse_period[channel]: tiempo en secs de 1 pulso
-		// * q_calc2: volumen en mt3 en 1 hora.
-//		q_calc2 = 0;
-//		if ( (systemVars.magPP[channel] != 0) && ( Cframe.dIn.pulse_period[channel] != 0 ) ) {
-//			q_calc2 = systemVars.magPP[channel] * 3600 / Cframe.dIn.pulse_period[channel];
-//		}
-//		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s:[p=%d,Qp=%.1f,dt=%.1f,Qt=%.1f] "), systemVars.dChName[channel],Cframe.dIn.pulse_count[channel],q_calc1, Cframe.dIn.pulse_period[channel],q_calc2 );
-
 		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s=%.1f(%c),"), systemVars.dChName[channel],Cframe.dIn.caudal[channel],Cframe.dIn.metodo_medida[channel] );
-
 	}
-//	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("\r\n\0") );
-//	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	// Bateria
 	pos += snprintf_P( &cmd_printfBuff[pos], sizeof(cmd_printfBuff), PSTR("bt=%.02f\r\n\0"),Cframe.batt );

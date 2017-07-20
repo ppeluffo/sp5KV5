@@ -53,8 +53,8 @@
 
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
-#define SP5K_REV "5.0.1"
-#define SP5K_DATE "@ 20170712"
+#define SP5K_REV "5.0.2"
+#define SP5K_DATE "@ 2017020"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -227,6 +227,8 @@ typedef struct {
 
 systemVarsType systemVars,tmpSV;
 
+uint32_t ticks;
+
 #define EEADDR_SV 32		// Direccion inicio de la EE de escritura del systemVars.
 
 //------------------------------------------------------------------------------------
@@ -254,19 +256,19 @@ int16_t u_readTimeToNextPoll(void);
 // tkControl
 bool u_terminal_is_on(void);
 bool u_tilt_alarmFired(void);
-// tkDigital
-void u_readCaudalesInstantaneos( float *Q0, float *Q1 );
 // tkGprs
 int32_t u_readTimeToNextDial(void);
 bool u_modem_prendido(void);
+// tkDigital
+void u_readDigitalCounters( dinData_t *dIn );
 
 char nowStr[32];
 char debug_printfBuff[CHAR128];
 
 //------------------------------------------------------------------------------------
 // PANIC CODES
-#define P_AIN_TIMERSTART	1
-#define P_AIN_TIMERCREATE	2
+#define P_AIN_TIMERSTART		1
+#define P_AIN_TIMERCREATE		2
 
 //------------------------------------------------------------------------------------
 // WATCHDOG

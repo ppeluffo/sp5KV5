@@ -192,3 +192,9 @@ void vApplicationIdleHook( void )
 	}
 }
 /*------------------------------------------------------------------------------------*/
+void vApplicationTickHook( void )
+{
+	// Para contar tiempo en forma exacta, llevo este contador de ticks.
+	ticks++;
+}
+/*------------------------------------------------------------------------------------*/

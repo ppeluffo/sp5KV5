@@ -79,10 +79,10 @@ uint8_t an_state;
 			an_state = anPROCESAR;	// next state
 			break;
 		case anPROCESAR:
-			pv_tka_promediar_datos();	// Promedio y corrijo el offset
-			pv_tka_save_frame_inBD();	// Guardo en memoria
-			pv_tka_signal_tasks();		// Aviso a otras tareas que hay datos
-			pv_tka_print_frame();		// Log
+			pv_tka_promediar_datos();		// Promedio y corrijo el offset
+			pv_tka_save_frame_inBD();		// Guardo en memoria
+			pv_tka_signal_tasks();			// Aviso a otras tareas que hay datos
+			pv_tka_print_frame();			// Log
 			an_state = anESPERAR;			// next state
 			break;
 		case anESPERAR:
@@ -159,7 +159,7 @@ uint8_t poll_counter;		// Contador de las veces poleadas antes de promediar
 //------------------------------------------------------------------------------------
 // FUNCIONES PRIVADAS
 //------------------------------------------------------------------------------------
-void pv_tka_save_frame_inBD(void)
+static void pv_tka_save_frame_inBD(void)
 {
 
 	// Solo los salvo en la BD si estoy en modo normal.
@@ -292,7 +292,7 @@ uint8_t channel;
 	ANframe.batt = rAIn[3];
 
 	// Agrego los canales digital ( y reseteo los contadores )
-	u_readDigitalCounters( &ANframe.dIn, true );
+	u_readDigitalCounters( &ANframe.dIn );
 
 }
 //------------------------------------------------------------------------------------
@@ -318,7 +318,6 @@ uint16_t pos = 0;
 
 		// Valores digitales
 		for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		//	pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s_p=%d,%s_t=%.02f"), systemVars.dChName[channel],ANframe.dIn.pulse_count[channel], systemVars.dChName[channel],ANframe.dIn.pulse_period[channel] );
 			pos += snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s=%.02f"), systemVars.dChName[channel],ANframe.dIn.caudal[channel] );
 
 		}
