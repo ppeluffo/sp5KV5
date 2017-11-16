@@ -16,6 +16,14 @@
  *
  * !! Agregar el salir automaticamente luego de 30 mins del modo service.
  *
+ * V5.0.3:
+ * 1- El timerDial debe funcionar en 32bits para permitir que disque 1 sola vez a dia.
+ * 2- Elimino el CONTINUO/DISCRETO: Si timerDial < 600 se trabaja en modo continuo. Si es mayor
+ * en modo discreto.
+ * La terminal la trabajo siempre como en modo discreto.
+ * 3- Elimino del tkAnalog el modo service/monitorframe/monitorSQE.
+ * 4- En tkDigital elimino el control que solo sea en modo normal. Es siempre.
+ *
  * V5.0.1:
  * Modificaciones mayores.
  * 1- Dejo de lado la implementacion de FSM ya que hace imposible de entender el programa.
@@ -186,7 +194,7 @@ void vApplicationIdleHook( void )
 
 	for(;;) {
 
-		if ( ( u_modem_prendido() == false ) && ( u_terminal_is_on() == false) && ( systemVars.pwrMode == PWR_DISCRETO)) {
+		if ( ( u_modem_prendido() == false ) && ( u_terminal_is_on() == false) && ( MODO_DISCRETO )) {
 			sleep_mode();
 		}
 	}

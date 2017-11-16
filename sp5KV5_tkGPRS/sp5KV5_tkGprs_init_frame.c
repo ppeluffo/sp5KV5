@@ -13,7 +13,6 @@ static void pv_TX_init_frame(void);
 static void pv_reconfigure_params(void);
 
 static void pv_process_server_clock(void);
-static uint8_t pv_process_pwrMode(void);
 static uint8_t pv_process_pwrSave(void);
 static uint8_t pv_process_timerPoll(void);
 static uint8_t pv_process_timerDial(void);
@@ -213,10 +212,6 @@ uint8_t i;
 		pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&TILT=OFF"));
 	}
 
-	// pwrMode
-	if ( systemVars.pwrMode == PWR_CONTINUO) { pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&PWRM=CONT")); }
-	if ( systemVars.pwrMode == PWR_DISCRETO) { pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&PWRM=DISC")); }
-
 	// pwrSave
 	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&PWRS=%d,"),systemVars.pwrSave.modo);
 	pos += snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%02d%02d,"),systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min );
@@ -293,7 +288,6 @@ uint8_t saveFlag = 0;
 
 	// Proceso la respuesta del INIT para reconfigurar los parametros
 	pv_process_server_clock();
-	saveFlag += pv_process_pwrMode();
 	saveFlag += pv_process_timerPoll();
 	saveFlag += pv_process_timerDial();
 	saveFlag += pv_process_pwrSave();
@@ -363,38 +357,6 @@ char rtcStr[12];
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
-}
-//------------------------------------------------------------------------------------
-static uint8_t pv_process_pwrMode(void)
-{
-char *s;
-uint8_t ret = 0;
-
-	s = FreeRTOS_UART_getFifoPtr(&pdUART0);
-
-	if ( strstr( s, "PWRM=DISC") != NULL ) {
-		u_configPwrMode(PWR_DISCRETO);
-		ret = 1;
-		if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
-			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::iniframe: Reconfig PWRM to DISC\r\n\0"), u_now());
-			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-		}
-	}
-	else if (strstr( s, "PWRM=CONT") != NULL ) {
-		u_configPwrMode(PWR_CONTINUO);
-		ret = 1;
-		if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
-			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::iniframe: Reconfig PWRM to CONT\r\n\0"), u_now());
-			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-		}
-	}
-	else {
-		// Para el caso que no halla recibido el parametro PWRM
-		goto quit;
-	}
-
-quit:
-	return(ret);
 }
 //------------------------------------------------------------------------------------
 static uint8_t pv_process_timerPoll(void)

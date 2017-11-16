@@ -23,6 +23,7 @@ bool exit_flag = bool_RESTART;
 // Entry:
 
 	GPRS_stateVars.state = G_PRENDER;
+	u_uarts_ctl(MODEM_PRENDER);
 
 	// Debo poner esta flag en true para que el micro no entre en sleep y pueda funcionar el puerto
 	// serial y leer la respuesta del AT del modem.

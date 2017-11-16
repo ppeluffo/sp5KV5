@@ -362,26 +362,8 @@ StatBuffer_t pxFFStatBuffer;
 	case WK_SERVICE:
 		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("service\r\n"));
 		break;
-	case WK_MONITOR_FRAME:
-		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("monitor_frame\r\n"));
-		break;
 	case WK_MONITOR_SQE:
 		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("monitor_sqe\r\n"));
-		break;
-	default:
-		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("ERROR\r\n"));
-		break;
-	}
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-
-	/* PWR mode (CONTINUO / DISCRETO) */
-	pos = snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  pwrmode: "));
-	switch (systemVars.pwrMode) {
-	case PWR_CONTINUO:
-		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("continuo\r\n"));
-		break;
-	case PWR_DISCRETO:
-		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("discreto\r\n"));
 		break;
 	default:
 		pos += snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff),PSTR("ERROR\r\n"));
@@ -398,14 +380,10 @@ StatBuffer_t pxFFStatBuffer;
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	/* Timers */
-	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerPoll [%ds]: %d\r\n\0"),systemVars.timerPoll, u_readTimeToNextPoll() );
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerPoll: [%ds]: %d\r\n\0"),systemVars.timerPoll, u_readTimeToNextPoll() );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
-	if ( systemVars.timerDial < 600 ) {
-		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerDial: [%lus]***: %li\r\n\0"), systemVars.timerDial, u_readTimeToNextDial() );
-	} else {
-		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerDial: [%lus]: %li\r\n\0"), systemVars.timerDial, u_readTimeToNextDial() );
-	}
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  timerDial: [%lus]: %li\r\n\0"), systemVars.timerDial, u_readTimeToNextDial() );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	/* DebugLevel */
@@ -471,11 +449,7 @@ StatBuffer_t pxFFStatBuffer;
 		}
 		break;
 	case OUT_NORMAL:
-		if (systemVars.pwrMode == PWR_DISCRETO ) {
-			snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: NORMAL*** (out0=%d, out1=%d)\r\n"), systemVars.outputs.out0, systemVars.outputs.out1 );
-		} else {
-			snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: NORMAL (out0=%d, out1=%d)\r\n"), systemVars.outputs.out0, systemVars.outputs.out1 );
-		}
+		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: NORMAL (out0=%d, out1=%d)\r\n"), systemVars.outputs.out0, systemVars.outputs.out1 );
 		break;
 	default:
 		snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  Outputs: ERROR(%d) (out0=%d, out1=%d)\r\n"), systemVars.outputs.modo, systemVars.outputs.out0, systemVars.outputs.out1 );
@@ -518,7 +492,7 @@ StatBuffer_t pxFFStatBuffer;
 	}
 	// Valores digitales
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s=%.1f(%c),"), systemVars.dChName[channel],Cframe.dIn.caudal[channel],Cframe.dIn.metodo_medida[channel] );
+		pos += snprintf_P( &cmd_printfBuff[pos], ( sizeof(cmd_printfBuff) - pos ), PSTR("%s=%.1f(%c),"), systemVars.dChName[channel],Cframe.dIn.caudal[channel], Cframe.dIn.metodo_medida[channel] );
 	}
 
 	// Bateria
@@ -823,21 +797,6 @@ uint8_t argc;
 	// TIMERDIAL
 	if (!strcmp_P( strupr(argv[1]), PSTR("TIMERDIAL\0"))) {
 		retS = u_configTimerDial(argv[2]);
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-		return;
-	}
-
-	// PWRMODE
-	if (!strcmp_P( strupr(argv[1]), PSTR("PWRMODE\0"))) {
-
-		if ((!strcmp_P(strupr(argv[2]), PSTR("CONTINUO")))) {
-			retS = u_configPwrMode(PWR_CONTINUO);
-		}
-
-		if ((!strcmp_P(strupr(argv[2]), PSTR("DISCRETO")))) {
-			retS = u_configPwrMode(PWR_DISCRETO);
-		}
-
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
@@ -1173,11 +1132,6 @@ bool retS = false;
 			goto quit;
 		}
 
-		if ((!strcmp_P( strupr(s1), PSTR("FRAME")))) {
-			systemVars.wrkMode = WK_MONITOR_FRAME;
-			retS = true;
-			goto quit;
-		}
 	}
 
 quit:

@@ -25,6 +25,8 @@ void tkGprsTx(void * pvParameters)
 	for( ;; )
 	{
 
+		//vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+
 RESTART:
 
 		if ( gprs_esperar_apagado() != bool_CONTINUAR ) {	// Espero con el modem apagado

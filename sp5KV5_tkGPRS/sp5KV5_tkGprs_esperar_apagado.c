@@ -27,6 +27,7 @@ bool exit_flag = false;
 // Entry:
 
 	GPRS_stateVars.state = G_ESPERA_APAGADO;
+	u_uarts_ctl(MODEM_APAGAR);
 
 	// Secuencia para apagar el modem y dejarlo en modo low power.
 	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
@@ -108,28 +109,20 @@ static void pv_calcular_tiempo_espera(void)
 	// NORMAL:
 	switch ( systemVars.wrkMode ) {
 	case WK_NORMAL:
-		// Depende en que modo de pwr estoy.
-		if ( systemVars.pwrMode == PWR_CONTINUO ) {
-			waiting_time = 30;
-		}
-
-		if ( systemVars.pwrMode == PWR_DISCRETO ) {
+		if ( MODO_DISCRETO ) {
 			waiting_time = systemVars.timerDial;
 			// Controlo que nunca disque en menos de 10 minutos.
 			if ( waiting_time < 600 ) {
 				//systemVars.timerDial = 600;
 				waiting_time = 600;
 			}
+		} else {
+			waiting_time = 30;
 		}
 		break;
 
 	case WK_SERVICE:
 		// Debo dejar apagado el modem. Si lo necesito lo prendo por cmdline
-		waiting_time = 0xFFFF;
-		break;
-
-	case WK_MONITOR_FRAME:
-		// Debo dejar apagado el modem
 		waiting_time = 0xFFFF;
 		break;
 
@@ -167,7 +160,7 @@ bool insidePwrSave_flag = false;
 	}
 
 	// Estoy en modo PWR_DISCRETO con PWR SAVE ACTIVADO
-	if ( ( systemVars.pwrMode == PWR_DISCRETO ) && ( systemVars.pwrSave.modo == modoPWRSAVE_ON )) {
+	if ( ( MODO_DISCRETO ) && ( systemVars.pwrSave.modo == modoPWRSAVE_ON )) {
 
 		RTC_read(&rtcDateTime);
 		now = rtcDateTime.hour * 60 + rtcDateTime.min;
@@ -237,7 +230,7 @@ bool ret_f = false;
 
 	if ( GPRS_stateVars.signal_frameReady) {
 		// Salgo a discar solo en continuo.
-		if ( systemVars.pwrMode == PWR_CONTINUO ) {
+		if ( ! MODO_DISCRETO ) {
 			*exit_flag = bool_CONTINUAR;
 			ret_f = true;
 			goto EXIT;

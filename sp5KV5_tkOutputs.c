@@ -144,15 +144,6 @@ static void pv_check_outputs_normales(void)
 	// discreto consumiria mucha corriente.
 	// En este modo, deberia estar configuradas las OUTPUT a OFF o CONSIGNAS
 
-	if ( systemVars.pwrMode == PWR_DISCRETO ) {
-		// No deberia entrar nunca aca pero si hay algo mal configurado ...
-		//if ( (systemVars.debugLevel & D_BASIC ) != 0) {
-		//	snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::config Error: En pwrMode discreto no pueden operar Outputs normales !!!\r\n\0"), u_now() );
-		//	FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
-		//}
-		return;
-	}
-
 	( systemVars.outputs.out0 == 0 ) ?	OUT0_off() : OUT0_on();
 	( systemVars.outputs.out1 == 0 ) ?	OUT1_off() : OUT1_on();
 
@@ -284,7 +275,7 @@ static void pv_init_outputs_normales(void)
 	// Aplica el valor indicado en systemVars a las salidas.
 
 	// Las salidas en modo normal NO se trabajan en pwrMode discreto.
-	if ( systemVars.pwrMode == PWR_DISCRETO ) {
+	if ( MODO_DISCRETO ) {
 
 		OUTPUT_DRV_disable();
 

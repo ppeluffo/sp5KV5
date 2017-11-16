@@ -96,13 +96,6 @@ uint8_t pin;
 		return;
 	}
 
-	// La terminal la apago y prendo solo si estoy en modo DISCRETO
-	// En otros modos queda siempre prendida
-	if ( systemVars.pwrMode != PWR_DISCRETO ) {
-		pinAnt = 1;
-		return;
-	}
-
 	// Si configure en consola la terminal esta para que quede prendida, lo dejo asi y salgo
 	if (  systemVars.terminal_on ) {
 		pinAnt = 1;	// Para que al cambiar de modo a OFF detecte una transicion.
@@ -119,6 +112,7 @@ uint8_t pin;
 		vTaskDelay( ( TickType_t)( 1500 / portTICK_RATE_MS ) );
 		IO_term_pwr_off();
 		f_terminalStatus = T_APAGADA;
+		u_uarts_ctl(TERM_APAGAR);
 		pinAnt = pin;
 		return;
 	}
@@ -127,6 +121,7 @@ uint8_t pin;
 	if ( ( pinAnt == 0) && ( pin == 1 ) ) {
 		IO_term_pwr_on();
 		f_terminalStatus = T_PRENDIDA;
+		u_uarts_ctl(TERM_PRENDER);
 		pinAnt = pin;
 		vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 		return;
@@ -258,6 +253,7 @@ uint16_t recSize;
 	MCP_init(1);
 	IO_term_pwr_on();
 	f_terminalStatus = T_PRENDIDA;
+	u_uarts_ctl(TERM_PRENDER);
 
 	// Load systemVars
 	if  ( u_loadSystemParams() == true ) {

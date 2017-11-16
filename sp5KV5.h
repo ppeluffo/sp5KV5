@@ -53,8 +53,8 @@
 
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
-#define SP5K_REV "5.0.2"
-#define SP5K_DATE "@ 2017021"
+#define SP5K_REV "5.0.6"
+#define SP5K_DATE "@ 20171116"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -120,13 +120,13 @@ wdgStatus_t wdgStatus;
 xSemaphoreHandle sem_SYSVars;
 #define MSTOTAKESYSVARSSEMPH ((  TickType_t ) 10 )
 
-typedef enum { WK_IDLE = 0, WK_NORMAL, WK_SERVICE, WK_MONITOR_FRAME, WK_MONITOR_SQE  } t_wrkMode;
-typedef enum { PWR_CONTINUO = 0, PWR_DISCRETO } t_pwrMode;
+typedef enum { WK_NORMAL = 0, WK_SERVICE, WK_MONITOR_SQE  } t_wrkMode;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
 typedef enum { D_NONE = 0, D_BASIC = 1, D_DATA = 2, D_GPRS = 4, D_MEM = 8, D_DIGITAL = 16, D_OUTPUTS = 32, D_DEBUG = 64 } t_debug;
 typedef enum { T_APAGADA = 0, T_PRENDIDA = 1 } t_terminalStatus;
 typedef enum { OUT_OFF = 0, OUT_CONSIGNA, OUT_NORMAL } t_outputs;
 typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;
+typedef enum { MODEM_PRENDER = 0, MODEM_APAGAR, TERM_PRENDER, TERM_APAGAR } t_uart_ctl;
 
 #define DLGID_LENGTH		12
 #define APN_LENGTH			32
@@ -135,6 +135,10 @@ typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;
 #define SCRIPT_LENGTH		64
 #define PASSWD_LENGTH		15
 #define PARAMNAME_LENGTH	5
+
+#define TIMERDIAL_FOR_CONTINUO	600
+
+#define MODO_DISCRETO ( (systemVars.timerDial > TIMERDIAL_FOR_CONTINUO ) ? true : false )
 
 typedef struct {
 	uint8_t hour;
@@ -196,7 +200,6 @@ typedef struct {
 	uint32_t timerDial;
 
 	t_wrkMode wrkMode;
-	t_pwrMode pwrMode;
 
 	uint8_t logLevel;		// Nivel de info que presentamos en display.
 	uint8_t debugLevel;		// Indica que funciones debugear.
@@ -235,11 +238,11 @@ uint32_t ticks;
 // FUNCIONES DE USO GENERAL.
 //------------------------------------------------------------------------------------
 // utils
+void u_uarts_ctl(uint8_t cmd);
 void u_panic( uint8_t panicCode );
 bool u_configOutputs( uint8_t modo, char *param1, char *param2 );
 bool u_configAnalogCh( uint8_t channel, char *chName, char *s_iMin, char *s_iMax, char *s_mMin, char *s_mMax );
 bool u_configDigitalCh( uint8_t channel, char *chName, char *s_magPP );
-bool u_configPwrMode(uint8_t pwrMode);
 bool u_configTimerDial(char *s_tDial);
 bool u_configTimerPoll(char *s_tPoll);
 void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
@@ -261,6 +264,8 @@ int32_t u_readTimeToNextDial(void);
 bool u_modem_prendido(void);
 // tkDigital
 void u_readDigitalCounters( dinData_t *dIn );
+
+void spy_delay( uint16_t us );
 
 char nowStr[32];
 char debug_printfBuff[CHAR128];

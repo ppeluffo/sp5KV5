@@ -76,11 +76,9 @@ uint8_t i;
 
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-		// Solo poleo las entradas en modo normal. En modo service no para
-		// poder manejarlas por los comandos de servicio.
-		if ( ( systemVars.wrkMode == WK_NORMAL) || ( systemVars.wrkMode == WK_MONITOR_FRAME ))  {
-			pv_pollQ();
-		}
+		// Poleo las entradas
+
+		pv_pollQ();
 	}
 
 }

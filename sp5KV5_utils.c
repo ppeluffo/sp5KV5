@@ -12,6 +12,64 @@ static uint8_t pv_paramStore(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
 static uint8_t pv_checkSum ( uint8_t *data,uint16_t sizebytes );
 static void pv_convert_str_to_time_t ( char *time_str, time_t *time_struct);
 
+
+void u_uarts_ctl(uint8_t cmd)
+{
+
+static bool terminal_prendida = false;
+static bool modem_prendido = false;
+
+	switch(cmd) {
+
+	case MODEM_PRENDER:
+		// Si tengo el LM365 deshabilitado lo habilito
+		if ( ! modem_prendido ) {
+			cbi(UARTCTL_PORT, UARTCTL);	// Habilito el LM365
+			modem_prendido = true;
+		}
+		break;
+
+	case TERM_PRENDER:
+		if ( ! terminal_prendida ) {
+			cbi(UARTCTL_PORT, UARTCTL);	// Habilito el LM365
+			terminal_prendida = true;
+		}
+		break;
+
+	case MODEM_APAGAR:
+		modem_prendido = false;
+		if ( ! terminal_prendida ) {
+			sbi(UARTCTL_PORT, UARTCTL);	// Deshabilito el LM365
+		}
+		break;
+
+	case TERM_APAGAR:
+		terminal_prendida = false;
+		if ( ! modem_prendido ) {
+			sbi(UARTCTL_PORT, UARTCTL);	// Deshabilito el LM365
+		}
+		break;
+		break;
+	}
+
+}
+//----------------------------------------------------------------------------------------
+void spy_delay( uint16_t us )
+{
+	// A 8Mhz, c/instruccion son 0.125uS.
+
+	while (us-->0 ) {
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+	}
+
+}
 //----------------------------------------------------------------------------------------
 void u_panic( uint8_t panicCode )
 {
@@ -101,33 +159,11 @@ bool u_configDigitalCh( uint8_t channel, char *chName, char *s_magPP )
 
 }
 //----------------------------------------------------------------------------------------
-bool u_configPwrMode(uint8_t pwrMode)
-{
-
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
-		taskYIELD();
-
-	systemVars.pwrMode =  pwrMode;
-	xSemaphoreGive( sem_SYSVars );
-
-	// tk_aIn: notifico en modo persistente. Si no puedo, me voy a resetear por watchdog. !!!!
-	while ( xTaskNotify(xHandle_tkAIn, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
-		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-	}
-
-	while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
-		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-	}
-
-	return(true);
-}
-//----------------------------------------------------------------------------------------
 bool u_configTimerDial(char *s_tDial)
 {
-u32 tdial;
+uint32_t tdial;
 
-	tdial = abs( (u32) ( atol(s_tDial) ));
-	if ( tdial < 120 ) { tdial = 120; }
+	tdial = (uint32_t) ( atol(s_tDial) );
 
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
 		taskYIELD();
@@ -280,7 +316,6 @@ uint8_t channel;
 	systemVars.gsmBand = 8;
 	systemVars.ri = 0;
 	systemVars.wrkMode = WK_NORMAL;
-	systemVars.pwrMode = PWR_DISCRETO;
 	systemVars.terminal_on = false;
 
 	strncpy_P(systemVars.apn, PSTR("SPYMOVIL.VPNANTEL\0"),APN_LENGTH);

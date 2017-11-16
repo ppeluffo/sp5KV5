@@ -73,13 +73,13 @@ bool exit_flag = false;
 
 			// No hay datos para trasmitir
 			// Modo discreto, Salgo a apagarme y esperar
-			if ( systemVars.pwrMode == PWR_DISCRETO ) {
+			if ( MODO_DISCRETO ) {
 				exit_flag = bool_CONTINUAR ;
 				goto EXIT;
 			}
 
 			// modo continuo: espero 90s antes de revisar si hay mas datos para trasmitir
-			if ( systemVars.pwrMode == PWR_CONTINUO ) {
+			if ( ! MODO_DISCRETO ) {
 				sleep_time = 90;
 				while( sleep_time-- > 0 ) {
 

@@ -27,6 +27,8 @@ static void pv_tka_save_frame_inBD(void);
 static void pv_tka_signal_tasks(void);
 static void pv_tka_print_frame(void);
 static void pv_tka_timer_callback( TimerHandle_t pxTimer );
+static void pv_init_AnFrame(void);
+
 static uint16_t pv_tka_set_waiting_time(void);
 static void pv_tka_prender_sensores(void);
 static void pv_tka_apagar_sensores(void);
@@ -54,6 +56,8 @@ uint8_t an_state;
 	if ( xTimerStart( pollingTimer, 0 ) != pdPASS ) {	// Arranco el timer
 		u_panic(P_AIN_TIMERSTART);
 	}
+
+	pv_init_AnFrame();
 
 	for( ;; )
 	{
@@ -167,11 +171,6 @@ static void pv_tka_save_frame_inBD(void)
 size_t bytes_written;
 StatBuffer_t pxFFStatBuffer;
 
-	// En cualquier modo que NO SEA NORMAL no guardo en memoria
-	if ( systemVars.wrkMode != WK_NORMAL ) {
-		return;
-	}
-
 	if ( (systemVars.debugLevel & D_DATA) != 0) {
 		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::bd:\r\n\0"),u_now() );
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
@@ -227,7 +226,6 @@ static void pv_tka_promediar_datos(void)
 	// Completo el frame con fechaHora y datos digitales.
 
 double I,M;
-uint8_t i;
 uint16_t D;
 uint8_t channel;
 
@@ -352,23 +350,7 @@ static uint16_t pv_tka_set_waiting_time(void)
 
 uint16_t new_wait_time;
 
-	switch ( systemVars.wrkMode ) {
-	case WK_NORMAL:
-		new_wait_time = systemVars.timerPoll;
-		break;
-	case WK_SERVICE:
-		new_wait_time = MAX_ANALOG_WAIT_TIME;
-		break;
-	case WK_MONITOR_FRAME:
-		new_wait_time = 15;
-		break;
-	case WK_MONITOR_SQE:
-		new_wait_time = MAX_ANALOG_WAIT_TIME;
-		break;
-	default :
-		new_wait_time = systemVars.timerPoll;
-		break;
-	}
+	new_wait_time = systemVars.timerPoll;
 
 	// Controlo el limite del tiempo de poleo.
 	if ( new_wait_time < 15 ) {
@@ -412,14 +394,8 @@ static void pv_tka_apagar_sensores(void)
 //------------------------------------------------------------------------------------
 int16_t u_readTimeToNextPoll(void)
 {
-int16_t retVal = -1;
 
-	// Lo determina en base al time elapsed y el timerPoll.
-	// El -1 indica un modo en que no esta poleando.
-	if ( ( systemVars.wrkMode == WK_NORMAL ) || ( systemVars.wrkMode == WK_MONITOR_FRAME )) {
-		retVal = (int16_t) AN_timer;
-	}
-	return (retVal);
+	return (AN_timer);
 }
 //------------------------------------------------------------------------------------
 void u_readDataFrame (frameData_t *dFrame)
@@ -451,4 +427,21 @@ void tkAnalogInit(void)
 	AN_timer = 0;
 }
 //------------------------------------------------------------------------------------
+static void pv_init_AnFrame(void)
+{
+uint8_t i;
 
+	for ( i = 0 ; i < NRO_ANALOG_CHANNELS; i++ ) {
+		ANframe.analogIn[i] = 0;
+	}
+
+	for ( i = 0; i < NRO_DIGITAL_CHANNELS; i++ ) {
+		ANframe.dIn.caudal[i] = 0;
+		ANframe.dIn.pulse_count[i] = 0;
+		ANframe.dIn.pulse_period[i] = 0;
+		ANframe.dIn.metodo_medida[i] = 'x';
+	}
+
+	ANframe.batt = 0;
+}
+//------------------------------------------------------------------------------------
