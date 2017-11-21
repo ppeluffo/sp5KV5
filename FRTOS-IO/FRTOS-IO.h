@@ -139,5 +139,4 @@ portBASE_TYPE FreeRTOS_I2C_ioctl( Peripheral_Descriptor_t pxPeripheral, uint32_t
 #define ioctl_I2C_SET_BYTEADDRESS			11
 #define ioctl_I2C_SET_BYTEADDRESSLENGTH		12
 
-
 #endif /* SRC_FRTOS_IO_FRTOS_IO_H_ */

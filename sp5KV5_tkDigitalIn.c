@@ -60,7 +60,7 @@ uint8_t i;
 	pv_clearQ();
 
 	for ( i = 0; i < NRO_DIGITAL_CHANNELS; i++ ) {
-		pv_Qdata.t_start[i] = ticks;
+		pv_Qdata.t_start[i] = 0;		// Con 0 indico que estoy comenzando y va a venir el primer pulso.
 		pv_Qdata.level[i] = 0;
 
 		pv_Qdata.pulse_count[i] = 0;
@@ -147,10 +147,11 @@ bool pv_procesar_pulso(uint8_t channel)
 		// incremento los pulsos
 		pv_Qdata.pulse_count[channel]++;
 
-		// Mido el tiempo desde el pulso anterior.
-		pv_Qdata.pulse_period[channel] = (ticks - pv_Qdata.t_start[channel]) * 0.01 ;	// elapsed time
+		// Mido el tiempo desde el pulso anterior
+		if ( pv_Qdata.t_start[channel] > 0 ) {
+			pv_Qdata.pulse_period[channel] = (ticks - pv_Qdata.t_start[channel]) * 0.01 ;	// elapsed time
+		}
 		pv_Qdata.t_start[channel] = ticks;
-
 		return(true);
 
 	} else {
