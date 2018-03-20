@@ -12,8 +12,8 @@
 
 char gprs_printfBuff[CHAR256];
 
-#define MAX_HW_TRIES_PWRON 		4	// Intentos de prender HW el modem
-#define MAX_SW_TRIES_PWRON 		4	// Intentos de prender SW el modem
+#define MAX_HW_TRIES_PWRON 		3	// Intentos de prender HW el modem
+#define MAX_SW_TRIES_PWRON 		3	// Intentos de prender SW el modem
 #define MAX_TRYES_NET_ATTCH		6	// Intentos de atachearme a la red GPRS
 #define MAX_IP_QUERIES 			4	// Intentos de conseguir una IP
 #define MAX_INIT_TRYES			4	// Intentos de procesar un frame de INIT

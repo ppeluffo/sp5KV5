@@ -117,5 +117,6 @@ void IO_init_pines(void);
 bool IO_read_din0( uint8_t *pin);
 bool IO_read_din1( uint8_t *pin);
 bool IO_read_dcd( uint8_t *pin);
+bool IO_read_fault1( uint8_t *pin);
 
 #endif /* SRC_SP5KLIBS_L_IOPINES_H_ */

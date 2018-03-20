@@ -91,7 +91,7 @@ void OUT0_on(void)
 	// De la Table 2. H-Bridge Logic,
 
 	IO_outputs_A1PHASE(HIGH); 	// Phase = 1: AOUT1->H, AOUT2->L
-	IO_outputs_A1ENBL(HIGH);		// A1ENABL = 1.
+	IO_outputs_A1ENBL(HIGH);	// A1ENABL = 1.
 
 }
 //------------------------------------------------------------------------------------
@@ -176,5 +176,75 @@ void OUT_pulse( uint8_t channel_id, char fase, uint8_t pulse_width )
 	IO_outputs_B1PHASE(LOW);
 	IO_outputs_A1ENBL(LOW);
 	IO_outputs_B1ENBL(LOW);
+}
+//------------------------------------------------------------------------------------
+uint8_t OUTA_1(void)
+{
+	// La salida OUT_0 corresponde al canal A (A1,A2) del DRV8814_1
+	// Por norma ponemos la salida AOUT1 en 1 y AOUT2 en 0 ( APHASE = 1 ).
+	// Debemos habilitar antes que nada la linea del OUT0.
+	// De la Table 2. H-Bridge Logic,
+
+uint8_t pin;
+
+	OUTPUT_DRV_enable();
+	IO_outputs_A1PHASE(HIGH); 	// Phase = 1: AOUT1->H, AOUT2->L
+	IO_outputs_sleep(HIGH);
+	IO_outputs_reset(HIGH);
+	IO_outputs_A1ENBL(HIGH);	// A1ENABL = 1.
+
+	IO_read_fault1(&pin);
+	return(pin);
+
+}
+//------------------------------------------------------------------------------------
+uint8_t OUTA_0(void)
+{
+
+uint8_t pin;
+
+	OUTPUT_DRV_enable();
+	IO_outputs_A1PHASE(LOW); 	// Phase = 1: AOUT1->H, AOUT2->L
+	IO_outputs_sleep(HIGH);
+	IO_outputs_reset(HIGH);
+	IO_outputs_A1ENBL(HIGH);	// A1ENABL = 1.
+
+	IO_read_fault1(&pin);
+	return(pin);
+}
+//------------------------------------------------------------------------------------
+uint8_t OUTB_0(void)
+{
+	// La salida OUT_0 corresponde al canal A (A1,A2) del DRV8814_1
+	// Por norma ponemos la salida AOUT1 en 1 y AOUT2 en 0 ( APHASE = 1 ).
+	// Debemos habilitar antes que nada la linea del OUT0.
+	// De la Table 2. H-Bridge Logic,
+
+uint8_t pin;
+
+	OUTPUT_DRV_enable();
+	IO_outputs_B1PHASE(HIGH); 	// Phase = 1: AOUT1->H, AOUT2->L
+	IO_outputs_sleep(HIGH);
+	IO_outputs_reset(HIGH);
+	IO_outputs_B1ENBL(HIGH);	// A1ENABL = 1.
+
+	IO_read_fault1(&pin);
+	return(pin);
+
+}
+//------------------------------------------------------------------------------------
+uint8_t OUTB_1(void)
+{
+
+uint8_t pin;
+
+	OUTPUT_DRV_enable();
+	IO_outputs_B1PHASE(LOW); 	// Phase = 1: AOUT1->H, AOUT2->L
+	IO_outputs_sleep(HIGH);
+	IO_outputs_reset(HIGH);
+	IO_outputs_B1ENBL(HIGH);	// A1ENABL = 1.
+
+	IO_read_fault1(&pin);
+	return(pin);
 }
 //------------------------------------------------------------------------------------

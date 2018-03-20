@@ -20,6 +20,8 @@ static void pv_init_outputs_off(void);
 static void pv_init_consignas(void);
 static void pv_init_outputs_normales(void);
 
+static 	uint8_t l_out0, l_out1;
+
 //------------------------------------------------------------------------------------
 void tkOutputs(void * pvParameters)
 {
@@ -36,6 +38,8 @@ uint8_t out_state;
 	FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
 	out_state = outESPERAR;			// El primer estado al que voy a ir.
 	OUT_timer = 10;
+	l_out0 = 0;
+	l_out1 = 0;
 
 	pv_init_outputs();
 
@@ -144,8 +148,27 @@ static void pv_check_outputs_normales(void)
 	// discreto consumiria mucha corriente.
 	// En este modo, deberia estar configuradas las OUTPUT a OFF o CONSIGNAS
 
-	( systemVars.outputs.out0 == 0 ) ?	OUT0_off() : OUT0_on();
-	( systemVars.outputs.out1 == 0 ) ?	OUT1_off() : OUT1_on();
+	// Version 5.1.0: Solo cambio las salidas si cambio el systemVars.
+	if ( l_out0 != systemVars.outputs.out0) {
+		l_out0 = systemVars.outputs.out0;
+		( l_out0 == 0 ) ?	OUTA_0() : OUTA_1();
+		if ( (systemVars.debugLevel & D_BASIC ) != 0) {
+			snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS:: config OUTA=%d\r\n\0"), u_now(),l_out0 );
+			FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
+		}
+	}
+
+	if ( l_out1 != systemVars.outputs.out1 ) {
+		l_out1 = systemVars.outputs.out1;
+		( l_out1 == 0 ) ?	OUTB_0() : OUTB_1();
+		if ( (systemVars.debugLevel & D_BASIC ) != 0) {
+			snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS:: config OUTB=%d\r\n\0"), u_now(),l_out1 );
+			FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
+		}
+	}
+
+	//( systemVars.outputs.out0 == 0 ) ?	OUTA_0() : OUTA_1();
+	//( systemVars.outputs.out1 == 0 ) ?	OUTB_0() : OUTB_1();
 
 }
 //------------------------------------------------------------------------------------
@@ -292,11 +315,14 @@ static void pv_init_outputs_normales(void)
 
 	vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	( systemVars.outputs.out0 == 0 ) ?	OUT0_off() : OUT0_on();
-	( systemVars.outputs.out1 == 0 ) ?	OUT1_off() : OUT1_on();
+	l_out0 = systemVars.outputs.out0;
+	l_out1 = systemVars.outputs.out1;
+
+	( l_out0 == 0 ) ?	OUTA_0() : OUTA_1();
+	( l_out1 == 0 ) ?	OUTB_0() : OUTB_1();
 
 	if ( (systemVars.debugLevel & (D_BASIC + D_OUTPUTS) ) != 0) {
-		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: Outputs normales O0=%d,O1=%d\r\n\0"), u_now(),systemVars.outputs.out0,systemVars.outputs.out1 );
+		snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("%s OUTPUTS::init: Outputs normales O0=%d,O1=%d\r\n\0"), u_now(),l_out0,l_out1 );
 		FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
 	}
 

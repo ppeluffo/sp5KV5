@@ -21,6 +21,8 @@ typedef enum { anPOLEAR, anPROCESAR, anESPERAR } t_anStates;
 
 static void pv_tka_poleo(void);
 
+static bool primer_frame;
+
 // FUNCIONES PRIVADAS
 static void pv_tka_promediar_datos(void);
 static void pv_tka_save_frame_inBD(void);
@@ -52,6 +54,7 @@ uint8_t an_state;
 	AN_timer = 5;				// Inicialmente espero 5s para polear
 	pv_tka_apagar_sensores(); 	// Los sensores arrancan apagados
 	an_state = anESPERAR;			// El primer estado al que voy a ir.
+	primer_frame = true;
 
 	if ( xTimerStart( pollingTimer, 0 ) != pdPASS ) {	// Arranco el timer
 		u_panic(P_AIN_TIMERSTART);
@@ -84,9 +87,16 @@ uint8_t an_state;
 			break;
 		case anPROCESAR:
 			pv_tka_promediar_datos();		// Promedio y corrijo el offset
-			pv_tka_save_frame_inBD();		// Guardo en memoria
-			pv_tka_signal_tasks();			// Aviso a otras tareas que hay datos
-			pv_tka_print_frame();			// Log
+			if ( primer_frame ) {
+				// Descarto el primer frame.
+				primer_frame = false;
+				snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::Primer frame clear:\r\n\0"),u_now() );
+				FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+			} else {
+				pv_tka_save_frame_inBD();		// Guardo en memoria
+				pv_tka_signal_tasks();			// Aviso a otras tareas que hay datos
+				pv_tka_print_frame();			// Log
+			}
 			an_state = anESPERAR;			// next state
 			break;
 		case anESPERAR:
@@ -150,7 +160,7 @@ uint8_t poll_counter;		// Contador de las veces poleadas antes de promediar
 			}
 
 			if ( (systemVars.debugLevel & D_DATA) != 0) {
-				snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::poll: ch_%02d=%.0f\r\n\0"),u_now(), channel, adcRetValue );
+				snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::poll: ch_%02d=%d\r\n\0"),u_now(), channel, adcRetValue );
 				FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 			}
 		}
@@ -257,6 +267,10 @@ uint8_t channel;
 		if ( D != 0 ) {
 			M = ( systemVars.Mmax[channel]  -  systemVars.Mmin[channel] ) / D;
 			rAIn[channel] = systemVars.Mmin[channel] + M * ( I - systemVars.Imin[channel] );
+			if ( (systemVars.debugLevel & D_DATA) != 0) {
+				snprintf_P( aIn_printfBuff,CHAR128,PSTR("%s aDATA::(ch %d) D=%d, M=%.3f, I=%.3f\r\n\0"), u_now(), channel, D,M,I);
+				FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+			}
 		} else {
 			// Error: denominador = 0.
 			rAIn[channel] = -999;

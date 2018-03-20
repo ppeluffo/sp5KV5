@@ -141,6 +141,8 @@ static void cmdHelpFunction(void)
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs out0,1 {0,1}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs outA,B {0|1}\r\n\0"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs vopen{0,1}, vclose{0,1}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  (SM) outputs enable,disable,[reset,sleep,pha1,phb1,ena1,enb1](0,1)\r\n\0"));
@@ -632,10 +634,10 @@ static void cmdWriteFunction(void)
 {
 bool retS = false;
 uint8_t argc;
+uint8_t fault_pin;
 
 	argc = pv_makeArgv();
 
-	// SAVE
 	if (!strcmp_P( strupr(argv[1]), PSTR("SAVE\0"))) {
 		retS = u_saveSystemParams();
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
@@ -849,6 +851,17 @@ uint8_t argc;
 		}
 
 		// (SM)
+		if (!strcmp_P( strupr(argv[2]), PSTR("OUTA")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			( atoi(argv[3]) == 0 )?  (fault_pin = OUTA_0()): ( fault_pin = OUTA_1() );
+			( fault_pin == 1 )? pv_snprintfP_OK() : pv_snprintfP_ERR();
+			return;
+		}
+		if (!strcmp_P( strupr(argv[2]), PSTR("OUTB")) && ( systemVars.wrkMode == WK_SERVICE) ) {
+			( atoi(argv[3]) == 0 )?  (fault_pin = OUTB_0()): ( fault_pin = OUTB_1() );
+			( fault_pin == 1 )? pv_snprintfP_OK() : pv_snprintfP_ERR();
+			return;
+		}
+
 		if (!strcmp_P( strupr(argv[2]), PSTR("OUT0")) && ( systemVars.wrkMode == WK_SERVICE) ) {
 			( atoi(argv[3]) == 0 )?  OUT0_off() :  OUT0_on();
 			pv_snprintfP_OK();

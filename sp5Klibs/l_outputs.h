@@ -26,6 +26,11 @@ void OUT1_disable(void);
 void OUT1_on(void);
 void OUT1_off(void);
 
+uint8_t OUTA_0(void);
+uint8_t OUTA_1(void);
+uint8_t OUTB_0(void);
+uint8_t OUTB_1(void);
+
 void OUTPUT_DRV_disable(void);
 void OUTPUT_DRV_enable(void);
 

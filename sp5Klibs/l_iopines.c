@@ -156,3 +156,14 @@ uint8_t regValue;
 	return(retS);
 }
 //------------------------------------------------------------------------------------
+bool IO_read_fault1( uint8_t *pin)
+{
+
+bool retS;
+uint8_t regValue;
+
+	retS = MCP_read( MCP1_ADDR, MCP1_GPIOA, &regValue);
+	*pin = ( regValue & 0x80) >> 7;
+	return(retS);
+}
+//------------------------------------------------------------------------------------

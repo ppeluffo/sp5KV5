@@ -16,6 +16,13 @@
  *
  * !! Agregar el salir automaticamente luego de 30 mins del modo service.
  *
+ * V5.0.8:
+ * En tkAnalog incorpora una flag para saber si estoy en el primer frame.
+ * Si es asi lo descarto ya que sino el caudal es 0 lo cual es incorrecto.
+ *
+ * V5.0.7:
+ * Igual a la 5.0.6 pero al entrar en modo sleep bloquea la terminal con el LM365.
+ *
  * V5.0.3:
  * 1- El timerDial debe funcionar en 32bits para permitir que disque 1 sola vez a dia.
  * 2- Elimino el CONTINUO/DISCRETO: Si timerDial < 600 se trabaja en modo continuo. Si es mayor
