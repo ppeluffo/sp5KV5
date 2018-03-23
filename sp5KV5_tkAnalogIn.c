@@ -8,7 +8,7 @@
 
 #include <sp5KV5.h>
 
-#define CICLOS_POLEO	3		// ciclos de poleo para promediar.
+#define CICLOS_POLEO	20		// ciclos de poleo para promediar.
 #define MAX_ANALOG_WAIT_TIME	0xFFFF
 
 static char aIn_printfBuff[CHAR256];
@@ -16,6 +16,15 @@ static double rAIn[NRO_ANALOG_CHANNELS + 1];	// Almaceno los datos de conversor 
 static frameData_t ANframe;
 static uint16_t  AN_timer;			// Temporizado que indica cuando poleo
 TimerHandle_t pollingTimer;
+
+
+static float array0[CICLOS_POLEO];
+static float array1[CICLOS_POLEO];
+static float array2[CICLOS_POLEO];
+static float array3[CICLOS_POLEO];
+static float *LoL[4];
+
+//static float ain_buffer[NRO_ANALOG_CHANNELS + 1][CICLOS_POLEO];
 
 typedef enum { anPOLEAR, anPROCESAR, anESPERAR } t_anStates;
 
@@ -35,6 +44,11 @@ static uint16_t pv_tka_set_waiting_time(void);
 static void pv_tka_prender_sensores(void);
 static void pv_tka_apagar_sensores(void);
 
+void pv_inicializar_lista(float buff[], uint8_t size);
+static float pv_promedio ( float *list, uint8_t size );
+static float pv_varianza( float *list_array, uint8_t size, float avg);
+static float pv_promedio_optimizado( float *list_array, uint8_t size, float sigma, float avg );
+
 //-------------------------------------------------------------------------------------
 void tkAnalogIn(void * pvParameters)
 {
@@ -53,7 +67,7 @@ uint8_t an_state;
 	//
 	AN_timer = 5;				// Inicialmente espero 5s para polear
 	pv_tka_apagar_sensores(); 	// Los sensores arrancan apagados
-	an_state = anESPERAR;			// El primer estado al que voy a ir.
+	an_state = anESPERAR;		// El primer estado al que voy a ir.
 	primer_frame = true;
 
 	if ( xTimerStart( pollingTimer, 0 ) != pdPASS ) {	// Arranco el timer
@@ -119,7 +133,7 @@ static void pv_tka_poleo(void)
 {
 
 uint16_t adcRetValue;
-uint8_t channel;
+uint8_t channel, ciclo;
 bool retS;
 uint8_t poll_counter;		// Contador de las veces poleadas antes de promediar
 
@@ -137,19 +151,27 @@ uint8_t poll_counter;		// Contador de las veces poleadas antes de promediar
 	vTaskDelay( ( TickType_t)( 1500 / portTICK_RATE_MS ) );
 
 	// Init Data Structure
-	for ( channel = 0; channel < (NRO_ANALOG_CHANNELS + 1); channel++ )
-		rAIn[channel] = 0;
+	LoL[0] = &array0[0];
+	LoL[1] = &array1[0];
+	LoL[2] = &array2[0];
+	LoL[3] = &array3[0];
+
+	for ( channel = 0; channel < (NRO_ANALOG_CHANNELS + 1); channel++ ) {
+		pv_inicializar_lista(LoL[channel], CICLOS_POLEO );
+	}
 
 // Loop:
 	// Poleo
-	poll_counter = CICLOS_POLEO;
-	while ( poll_counter-- > 0) {
 
-		for ( channel = 0; channel < (NRO_ANALOG_CHANNELS + 1); channel++ ) {
+	for ( ciclo = 0; ciclo < CICLOS_POLEO; ciclo++)
+	{
+		for ( channel = 0; channel < (NRO_ANALOG_CHANNELS + 1); channel++ )
+		{
 			adcRetValue = 0;
 			retS = ADC_readDlgCh( channel, &adcRetValue);	// AIN0->ADC3; AIN1->ADC5; AIN2->ADC7; BATT->ADC1;
+
 			if ( retS ) {
-				rAIn[channel] += adcRetValue;
+				LoL[channel][ciclo] = adcRetValue;
 			} else {
 
 				if ( (systemVars.debugLevel & (D_BASIC + D_DATA) ) != 0) {
@@ -163,7 +185,10 @@ uint8_t poll_counter;		// Contador de las veces poleadas antes de promediar
 				snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::poll: ch_%02d=%d\r\n\0"),u_now(), channel, adcRetValue );
 				FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 			}
+
 		}
+
+		vTaskDelay( ( TickType_t)( 250 / portTICK_RATE_MS ) );	// Espero 250ms. f = 4hz.
 	}
 
 // Exit:
@@ -238,22 +263,33 @@ static void pv_tka_promediar_datos(void)
 double I,M;
 uint16_t D;
 uint8_t channel;
+float avgValue[NRO_ANALOG_CHANNELS + 1];
+float sigmaValue[NRO_ANALOG_CHANNELS + 1];
 
 	if ( (systemVars.debugLevel & D_DATA) != 0) {
 		snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("%s aDATA::avg:\r\n\0"),u_now() );
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
 
-	// Promedio canales analogicos y bateria
-	for ( channel = 0; channel < (NRO_ANALOG_CHANNELS + 1); channel++) {
-		rAIn[channel] /= CICLOS_POLEO;
-
+	// Calculo el promedio de los 4 canales;
+	for ( channel = 0; channel < ( NRO_ANALOG_CHANNELS + 1); channel++ ) {
+		avgValue[channel] = pv_promedio( LoL[channel], CICLOS_POLEO);
+		sigmaValue[channel] = pv_varianza( LoL[channel], CICLOS_POLEO, avgValue[channel]);
 		if ( (systemVars.debugLevel & D_DATA) != 0) {
-			snprintf_P( aIn_printfBuff,CHAR128,PSTR("%s aDATA::avg: AvgCh[%d]=%.02f\r\n\0"), u_now(), channel, rAIn[channel]);
+			snprintf_P( aIn_printfBuff,CHAR128,PSTR("%s aDATA::avg: AvgCh[%d]=%.02f, Sg=%.02f \r\n\0"), u_now(), channel, avgValue[channel], sigmaValue[channel]);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
-
 	}
+
+	// Calculo los nuevos promedios con aquellos valores que caen entre avg y 1 sigma.
+	for ( channel = 0; channel < ( NRO_ANALOG_CHANNELS + 1); channel++ ) {
+		rAIn[channel] = pv_promedio_optimizado( LoL[channel], CICLOS_POLEO,sigmaValue[channel], avgValue[channel]);
+		if ( (systemVars.debugLevel & D_DATA) != 0) {
+			snprintf_P( aIn_printfBuff,CHAR128,PSTR("%s aDATA::AvgOptimo[%d]=%.02f \r\n\0"), u_now(), channel, rAIn[channel]);
+			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+		}
+	}
+
 
 	// Convierto los canales analogicos a magnitudes.
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS ; channel++) {
@@ -307,7 +343,7 @@ uint8_t channel;
 	u_readDigitalCounters( &ANframe.dIn );
 
 }
-//------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------
 static void pv_tka_print_frame(void)
 {
 	// Imprimo
@@ -457,5 +493,65 @@ uint8_t i;
 	}
 
 	ANframe.batt = 0;
+}
+//------------------------------------------------------------------------------------
+void pv_inicializar_lista(float buff[], uint8_t size)
+{
+uint8_t i;
+
+	for ( i=0; i<size; i++) {
+		buff[i] = 0.0;
+	}
+}
+//------------------------------------------------------------------------------------
+static float pv_promedio ( float *list_array, uint8_t size )
+{
+uint8_t ciclo;
+float avg = 0.0;
+
+	for ( ciclo = 0; ciclo < size; ciclo++ )
+	{
+		avg += list_array[ciclo];
+	}
+	avg /= size;
+
+	return(avg);
+
+}
+//------------------------------------------------------------------------------------
+static float pv_varianza( float *list_array, uint8_t size, float avg)
+{
+uint8_t ciclo;
+float var = 0.0;
+
+	for ( ciclo = 0; ciclo < size; ciclo++ )
+	{
+		var += ( list_array[ciclo] * list_array[ciclo] );
+	}
+	var = sqrt (var / size - ( avg * avg ));
+
+	return(var);
+
+}
+//------------------------------------------------------------------------------------
+static float pv_promedio_optimizado( float *list_array, uint8_t size, float sigma, float avg )
+{
+
+uint8_t i;
+uint8_t count = 0;
+float prom = 0.0;
+
+		for ( i = 0; i < size; i++ )
+		{
+			if ( abs ( list_array[i] - avg) < sigma ) {
+				count++;
+				prom += list_array[i];
+			}
+		}
+
+		prom /= count;
+
+		return(prom);
+
 }
 //------------------------------------------------------------------------------------

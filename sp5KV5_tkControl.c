@@ -69,17 +69,21 @@ static void pv_check_wdg(void)
 	// Cada tarea periodicamente pone su wdg flag en 0. Esto hace que al chequearse c/3s
 	// deban estar todas en 0 para asi resetear el wdg del micro.
 
-static u08 l_timer = 5;
+static u08 l_timer = 20;
 
+	// Espero 10s sin resetearme
 	if (l_timer-- > 0 )
+		wdt_reset();
 		return;
 
-	l_timer = 5;
-	if ( systemWdg == 0 ) {
-		wdt_reset();
-		systemWdg = WDG_CTL + WDG_CMD + WDG_DIN + WDG_AIN + WDG_OUT;
+	// Si algun WDG no se borro, me reeseteo
+	if ( systemWdg != 0 ) {
+		while(1);
 	}
 
+	// Reincializo el sistema
+	systemWdg = WDG_CTL + WDG_CMD + WDG_DIN + WDG_AIN + WDG_OUT;
+	l_timer = 20;
 }
 //------------------------------------------------------------------------------------
 static void pv_check_terminal(void)
