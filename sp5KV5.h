@@ -33,7 +33,7 @@
 #include <l_rtc.h>
 #include <l_iopines.h>
 #include <l_mcp.h>
-#include <l_outputs.h>
+#include <l_drv8814.h>
 
 #include "sp5Klibs/avrlibdefs.h"
 #include "sp5Klibs/avrlibtypes.h"
@@ -48,13 +48,14 @@
 #include "limits.h"
 
 #include "FRTOS-IO.h"
+#include "FRTOS_stdio.h"
 
 #include "cmdline.h"
 
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
-#define SP5K_REV "5.1.0"
-#define SP5K_DATE "@ 20180323"
+#define SP5K_REV "5.1.2"
+#define SP5K_DATE "@ 20180425"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -108,19 +109,16 @@ typedef struct {
 wdgStatus_t wdgStatus;
 
 // Mensajes entre tareas
-#define TK_PARAM_RELOAD			0x01	// param reload
 #define TK_READ_FRAME			0x02	// to tkAnalogIN: (mode service) read a frame
-#define TK_TILT					0x04	//
 #define TK_FRAME_READY			0x08	//
 #define TK_REDIAL				0x10	//
-#define TK_CHANGE_OUTPUTS		0x20
 
 //------------------------------------------------------------------------------------
 
 xSemaphoreHandle sem_SYSVars;
 #define MSTOTAKESYSVARSSEMPH ((  TickType_t ) 10 )
 
-typedef enum { WK_NORMAL = 0, WK_SERVICE, WK_MONITOR_SQE  } t_wrkMode;
+typedef enum { WK_NORMAL = 0, WK_MONITOR_SQE  } t_wrkMode;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
 typedef enum { D_NONE = 0, D_BASIC = 1, D_DATA = 2, D_GPRS = 4, D_MEM = 8, D_DIGITAL = 16, D_OUTPUTS = 32, D_DEBUG = 64 } t_debug;
 typedef enum { T_APAGADA = 0, T_PRENDIDA = 1 } t_terminalStatus;
@@ -147,9 +145,8 @@ typedef struct {
 
 typedef struct {
 	uint16_t pulse_count[NRO_DIGITAL_CHANNELS];			// 8
-	float pulse_period[NRO_DIGITAL_CHANNELS];			// 8
 	float caudal[NRO_DIGITAL_CHANNELS];					// 8
-	char metodo_medida[NRO_DIGITAL_CHANNELS];			// 2
+	uint8_t level0;										// El canal tilt es el unico que vemos el nivel
 } dinData_t;		// 16 bytes
 
 typedef struct {
@@ -162,8 +159,8 @@ typedef struct {
 
 typedef struct {
 	uint8_t modo;
-	uint8_t out0;
-	uint8_t out1;
+	uint8_t out_A;
+	uint8_t out_B;
 	time_t consigna_diurna;
 	time_t consigna_nocturna;
 	uint8_t consigna_aplicada;
@@ -201,7 +198,6 @@ typedef struct {
 
 	t_wrkMode wrkMode;
 
-	uint8_t logLevel;		// Nivel de info que presentamos en display.
 	uint8_t debugLevel;		// Indica que funciones debugear.
 	uint8_t gsmBand;
 
@@ -222,8 +218,6 @@ typedef struct {
 
 	bool roaming;
 
-	bool tiltEnabled;
-
 	outputs_t outputs;
 
 } systemVarsType;	// 315 bytes
@@ -239,53 +233,56 @@ uint32_t ticks;
 //------------------------------------------------------------------------------------
 // utils
 void u_uarts_ctl(uint8_t cmd);
-void u_panic( uint8_t panicCode );
-bool u_configOutputs( uint8_t modo, char *param1, char *param2 );
-bool u_configAnalogCh( uint8_t channel, char *chName, char *s_iMin, char *s_iMax, char *s_mMin, char *s_mMax );
-bool u_configDigitalCh( uint8_t channel, char *chName, char *s_magPP );
-bool u_configTimerDial(char *s_tDial);
-bool u_configTimerPoll(char *s_tPoll);
 void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
-void u_kick_Wdg( uint8_t wdgId );
 bool u_saveSystemParams(void);
 bool u_loadSystemParams(void);
 void u_loadDefaults(void);
-char *u_now(void);
 void u_debugPrint(uint8_t debugCode, char *msg, uint16_t size);
-void u_reset(void);
+
+bool pub_configTimerDial(char *s_tDial);
+void pub_reset(void);
+void pub_convert_str_to_time_t ( char *time_str, time_t *time_struct );
+
 // tkAnalog
-void u_readDataFrame (frameData_t *dFrame);
-int16_t u_readTimeToNextPoll(void);
+void pub_analog_load_defaults(void);
+bool pub_analog_config_channel( uint8_t channel, char *chName, char *s_iMin, char *s_iMax, char *s_mMin, char *s_mMax );
+bool pub_analog_config_timerpoll(char *s_tPoll);
+void pub_analog_print_frame(frameData_t *dframe);
+void pub_analog_read_frame(bool saveInBD );
+frameData_t *pub_analog_get_data_frame_ptr(void);
+
 // tkControl
-bool u_terminal_is_on(void);
-bool u_tilt_alarmFired(void);
+bool pub_control_terminal_is_on(void);
+void pub_control_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs );
+void pub_print_wdg_timers(void);
+
+// tkDigital
+void pub_digital_read_counters( dinData_t *dIn );
+void pub_digital_load_defaults(void);
+bool pub_digital_config_channel( uint8_t channel, char *chName, char *s_magPP );
+
 // tkGprs
 int32_t u_readTimeToNextDial(void);
 bool u_modem_prendido(void);
-// tkDigital
-void u_readDigitalCounters( dinData_t *dIn );
 
-void spy_delay( uint16_t us );
+// tkOutputs
+void pub_outputs_load_defaults(void);
+void pub_outputs_config( char *param0, char *param1, char *param2 );
+void pub_output_set_consigna_diurna(void);
+void pub_output_set_consigna_nocturna(void);
+void pub_output_set_outputs( char id_output, uint8_t value);
 
-char nowStr[32];
-char debug_printfBuff[CHAR128];
+char debug_printfBuff[CHAR64];
 
-//------------------------------------------------------------------------------------
-// PANIC CODES
-#define P_AIN_TIMERSTART		1
-#define P_AIN_TIMERCREATE		2
-
-//------------------------------------------------------------------------------------
 // WATCHDOG
-uint8_t systemWdg;
-
-#define WDG_CTL			0x01
-#define WDG_CMD			0x02
-#define WDG_DIN			0x04
-#define WDG_OUT			0x08
-#define WDG_AIN			0x10
-//#define WDG_GPRS		0x20
-//#define WDG_GPRSRX	0x40
+#define WDG_CTL			0
+#define WDG_CMD			1
+#define WDG_DIN			2
+#define WDG_OUT			3
+#define WDG_AIN			4
+//#define WDG_GPRS		5
+//#define WDG_GPRSRX	6
+#define NRO_WDGS		5
 
 //------------------------------------------------------------------------------------
 

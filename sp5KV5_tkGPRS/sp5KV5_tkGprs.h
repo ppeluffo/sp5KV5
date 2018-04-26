@@ -38,9 +38,7 @@ typedef enum { G_ESPERA_APAGADO = 0, G_PRENDER, G_CONFIGURAR, G_MON_SQE, G_GET_I
 
 struct {
 	bool modem_prendido;
-	bool signal_reload;
 	bool signal_redial;
-	bool signal_tilt;
 	bool signal_frameReady;
 	uint8_t state;
 

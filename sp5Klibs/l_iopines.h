@@ -48,13 +48,6 @@ typedef enum { LOW = 0, HIGH } t_low_high;
 #define TERMSW_DDR		DDRD
 #define TERMSW_MASK		0x80
 
-// Sensor de TILT
-#define TILT_PORT		PORTB
-#define TILT_PIN		PINB
-#define TILT_BIT		0
-#define TILT_DDR		DDRB
-#define TILT_MASK		0x1
-
 // Q PINES
 #define Q_PORT		PORTA
 #define Q_DDR		DDRA
@@ -71,6 +64,14 @@ typedef enum { LOW = 0, HIGH } t_low_high;
 #define DCD_DDR			DDRB
 #define DCD_MASK		0x8
 
+// DIGITAL INPUT LEVEL0
+#define DL0_PORT		PORTB
+#define DL0_PIN			PINB
+#define DL0_BIT			0
+#define DL0_DDR			DDRB
+#define DL0_MASK		0x1
+
+#define IO_read_dinL0_pin() ( ( DL0_PIN & _BV(DL0_BIT) ) >> DL0_BIT )
 // --------------------------------------------------------------------------------
 
 #define IO_set_led_KA_logicBoard() 		(MCP_modify( MCP0_ADDR, MCP0_GPIO, 1, MCP0_GPIO_OLED ))
@@ -103,16 +104,22 @@ typedef enum { LOW = 0, HIGH } t_low_high;
 #define IO_set_Q1()		( sbi(Q_PORT, Q1_CTL_PIN))
 #define IO_clear_Q1()	( cbi(Q_PORT, Q1_CTL_PIN))
 
-void IO_outputs_reset(t_low_high level);
-void IO_outputs_sleep(t_low_high level);
-void IO_outputs_A1ENBL(t_low_high level);
-void IO_outputs_B1ENBL(t_low_high level);
-void IO_outputs_A1PHASE(t_low_high level);
-void IO_outputs_B1PHASE(t_low_high level);
+#define IO_set_ENA()	MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_ENA1 )
+#define IO_clr_ENA() 	MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_ENA1 )
+#define IO_set_ENB()	MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_ENB1 )
+#define IO_clr_ENB()	MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_ENB1 )
+#define IO_set_RES()	MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_RESET )
+#define IO_clr_RES()	MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_RESET )
+#define IO_set_SLP()	MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_SLEEP )
+#define IO_clr_SLP()	MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_SLEEP )
+#define IO_set_PHA()	MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_PHA1 )
+#define IO_clr_PHA()	MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_PHA1 )
+#define IO_set_PHB()	MCP_modify( MCP1_ADDR, MCP1_OLATA, 1, MCP1_PHB1 )
+#define IO_clr_PHB()	MCP_modify( MCP1_ADDR, MCP1_OLATA, 0, MCP1_PHB1 )
 
 bool IO_read_pulseInputs( uint8_t *din0, uint8_t *din1 );
 uint8_t IO_read_terminal_pin(void);
-uint8_t IO_read_tilt_pin(void);
+
 void IO_init_pines(void);
 bool IO_read_din0( uint8_t *pin);
 bool IO_read_din1( uint8_t *pin);

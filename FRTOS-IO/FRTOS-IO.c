@@ -469,10 +469,10 @@ uint16_t *p;
 	pI2C = pxPeripheralControl->phDevice;
 	p = pvValue;
 
-	if ( debug_pdId > 0) {
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("FRTOS_I2C_IOCTL(%d): 0x%02x,0x%02x\r\n\0"), debug_pdId, (uint8_t)ulRequest, (uint16_t)(*p));
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
-	}
+//	if ( debug_pdId > 0) {
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("FRTOS_I2C_IOCTL(%d): 0x%02x,0x%02x\r\n\0"), debug_pdId, (uint8_t)ulRequest, (uint16_t)(*p));
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	}
 
 	switch( ulRequest )
 	{

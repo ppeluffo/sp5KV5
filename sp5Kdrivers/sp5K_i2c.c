@@ -45,8 +45,8 @@ uint8_t i;
 i2c_retry:
 
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW0: 0x%02x,0x%02x,0x%02x,0x%02x\r\n\0"),devAddress,devAddressLength, (u16)(byteAddress), xBytes );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW0: 0x%02x,0x%02x,0x%02x,0x%02x\r\n\0"),devAddress,devAddressLength, (u16)(byteAddress), xBytes );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	if (tryes++ >= I2C_MAXTRIES) goto i2c_quit;
@@ -57,8 +57,8 @@ i2c_retry:
 		goto i2c_quit;
 	i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW1: 0x%02x\r\n\0"),i2c_status );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW1: 0x%02x\r\n\0"),i2c_status );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	if ( i2c_status == TW_MT_ARB_LOST) goto i2c_retry;
 	if ( (i2c_status != TW_START) && (i2c_status != TW_REP_START) ) goto i2c_quit;
@@ -70,8 +70,8 @@ i2c_retry:
 		goto i2c_quit;
 	i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW2: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW2: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	// Check the TWSR status
 	if ((i2c_status == TW_MT_SLA_NACK) || (i2c_status == TW_MT_ARB_LOST)) goto i2c_retry;
@@ -87,8 +87,8 @@ i2c_retry:
 			goto i2c_quit;
 		i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW3H: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW3H: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 		if (i2c_status != TW_MT_DATA_ACK) goto i2c_quit;
 	}
@@ -101,8 +101,8 @@ i2c_retry:
 			goto i2c_quit;
 		i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW3L: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW3L: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 		if (i2c_status != TW_MT_DATA_ACK) goto i2c_quit;
 	}
@@ -115,8 +115,8 @@ i2c_retry:
 			goto i2c_quit;
 		i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW4: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MW4: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 		if (i2c_status != TW_MT_DATA_ACK) goto i2c_quit;
 	}
@@ -151,8 +151,8 @@ uint8_t i;
 i2c_retry:
 
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR0: 0x%02x,0x%02x,0x%02x,0x%02x\r\n\0"),devAddress,devAddressLength, (u16)(byteAddress), xBytes );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR0: 0x%02x,0x%02x,0x%02x,0x%02x\r\n\0"),devAddress,devAddressLength, (u16)(byteAddress), xBytes );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	if (tryes++ >= I2C_MAXTRIES) goto i2c_quit;
@@ -163,8 +163,8 @@ i2c_retry:
 		goto i2c_quit;
 	i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR1: 0x%02x\r\n\0"),i2c_status );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR1: 0x%02x\r\n\0"),i2c_status );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	if ( i2c_status == TW_MT_ARB_LOST) goto i2c_retry;
 	if ( (i2c_status != TW_START) && (i2c_status != TW_REP_START) ) goto i2c_quit;
@@ -183,8 +183,8 @@ i2c_retry:
 	if ((i2c_status == TW_MT_SLA_NACK) || (i2c_status == TW_MT_ARB_LOST)) goto i2c_retry;
 	if (i2c_status != TW_MT_SLA_ACK) goto i2c_quit;
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR2: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR2: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	// Pass3) Envio la direccion fisica donde comenzar a escribir.
 	// En las memorias es una direccion de 2 bytes.En el DS1344 o el BusController es de 1 byte
@@ -196,8 +196,8 @@ i2c_retry:
 			goto i2c_quit;
 		i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR3H: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR3H: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 		if (i2c_status != TW_MT_DATA_ACK) goto i2c_quit;
 	}
@@ -210,8 +210,8 @@ i2c_retry:
 			goto i2c_quit;
 		i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR3L: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR3L: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 		if (i2c_status != TW_MT_DATA_ACK) goto i2c_quit;
 	}
@@ -223,8 +223,8 @@ i2c_retry:
 		goto i2c_quit;
 	i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR4: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR4: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	if (i2c_status == TW_MT_ARB_LOST) goto i2c_retry;
 	if ( (i2c_status != TW_START) && (i2c_status != TW_REP_START) ) goto i2c_quit;
@@ -238,8 +238,8 @@ SRL_R:
 	// Check the TWSR status
 	i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR5: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR5: 0x%02x,0x%02x\r\n\0"),txbyte,i2c_status );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	if ((i2c_status == TW_MR_SLA_NACK) || (i2c_status == TW_MR_ARB_LOST)) goto i2c_retry;
 	if (i2c_status != TW_MR_SLA_ACK) goto i2c_quit;
@@ -251,8 +251,8 @@ SRL_R:
 			goto i2c_quit;
 		i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR6(%d): 0x%02x,0x%02x\r\n\0"),i,TWDR,i2c_status );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR6(%d): 0x%02x,0x%02x\r\n\0"),i,TWDR,i2c_status );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 		if (i2c_status != TW_MR_DATA_ACK) goto i2c_quit;
 		*pvBuffer++ = TWDR;
@@ -264,8 +264,8 @@ SRL_R:
 		goto i2c_quit;
 	i2c_status = pvI2C_getStatus();
 #ifdef DEBUG_I2C
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR6(%d): 0x%02x,0x%02x\r\n\0"),i,TWDR,i2c_status );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("I2C_MR6(%d): 0x%02x,0x%02x\r\n\0"),i,TWDR,i2c_status );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	if (i2c_status != TW_MR_DATA_NACK) goto i2c_quit;
 	*pvBuffer++ = TWDR;

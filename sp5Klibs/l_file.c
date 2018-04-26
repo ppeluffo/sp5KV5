@@ -72,8 +72,8 @@ uint16_t eeAddress = 0;
 	bytes_read = EE_read( eeAddress, &FCB.ff_buffer, FF_RECD_SIZE );
 
 #ifdef DEBUG_FF
-	snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("FO: [%d][%d]\r\n\0"),FF_RECD_SIZE, bytes_read);
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("FO: [%d][%d]\r\n\0"),FF_RECD_SIZE, bytes_read);
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	if ( bytes_read != FF_RECD_SIZE ) {
@@ -193,8 +193,8 @@ uint16_t eeAddress = 0;
 uint8_t bytes_writen = 0U;
 
 #ifdef ff_DEBUG
-	snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: 0x%02x\r\n\0"),xSize );
-	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//	snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: 0x%02x\r\n\0"),xSize );
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	// Lo primero es obtener el semaforo del I2C
@@ -204,8 +204,8 @@ uint8_t bytes_writen = 0U;
 	// Si la memoria esta llena no puedo escribir: salgo
 	if ( FCB.ff_stat.rcdsFree == 0 ) {
 #ifdef ff_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: MEM_FULL\r\n\0") );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: MEM_FULL\r\n\0") );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 		FCB.ff_stat.errno = pdFF_ERRNO_MEMFULL;
 		goto quit;
@@ -220,8 +220,8 @@ uint8_t bytes_writen = 0U;
 	// El checksum es solo del dataFrame por eso paso dicho size.
 	FCB.ff_buffer[xSize] = pv_memChecksum(FCB.ff_buffer, xSize );
 #ifdef ff_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: CKS=%d\r\n\0"),FCB.ff_buffer[xSize] );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: CKS=%d\r\n\0"),FCB.ff_buffer[xSize] );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	// Grabo el tag para indicar que el registro esta escrito.
@@ -241,15 +241,15 @@ uint8_t bytes_writen = 0U;
 		EE_read(eeAddress, FCB.check_buffer, FF_RECD_SIZE);
 
 #ifdef ff_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: tryes:0x%02x, eeAddress:0x%02x, bytes_written:0x%02x\r\n\0"),tryes,eeAddress,bytes_writen );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: tryes:0x%02x, eeAddress:0x%02x, bytes_written:0x%02x\r\n\0"),tryes,eeAddress,bytes_writen );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 		if ( memcmp (&FCB.check_buffer, &FCB.ff_buffer, FF_RECD_SIZE) == 0 )
 			break;
 
 		if  ( tryes == 3 ) {
-			snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("FS WR ERR\r\n\0"));
+			FRTOS_snprintf( debug_printfBuff,sizeof(debug_printfBuff),"FS WR ERR\r\n\0");
 			FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff));
 			FCB.ff_stat.errno = pdFF_ERRNO_MEMWR;
 			bytes_writen = 0U;
@@ -295,8 +295,8 @@ uint16_t eeAddress = 0;
 uint8_t bytes_read = 0U;
 
 #ifdef ff_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_READ:\r\n\0") );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_READ:\r\n\0") );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	// Lo primero es obtener el semaforo del I2C
@@ -307,8 +307,8 @@ uint8_t bytes_read = 0U;
 	// Si la memoria esta vacia salgo ( todos los registros libres )
 	if ( FCB.ff_stat.rcdsFree == FF_MAX_RCDS ) {
 #ifdef ff_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: MEM_EMPTY\r\n\0") );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_WRITE: MEM_EMPTY\r\n\0") );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 		FCB.ff_stat.errno = pdFF_ERRNO_MEMEMPTY;
 		goto quit;
@@ -334,8 +334,8 @@ uint8_t bytes_read = 0U;
 	bytes_read = EE_read(eeAddress, FCB.ff_buffer, FF_RECD_SIZE);
 
 #ifdef ff_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_READ: eeAddress:0x%02x, bytes_read:0x%02x\r\n\0"),eeAddress,bytes_read );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_READ: eeAddress:0x%02x, bytes_read:0x%02x\r\n\0"),eeAddress,bytes_read );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	// Avanzo el puntero de RD en modo circular siempre !!
@@ -356,8 +356,8 @@ uint8_t bytes_read = 0U;
 	// El checksum es solo del dataFrame por eso paso dicho size.
 	rdCheckSum = pv_memChecksum(FCB.ff_buffer, xSize );
 #ifdef ff_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_READ: CKS=%d,%d\r\n\0"),rdCheckSum, FCB.ff_buffer[xSize] );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("**DEBUG FF_READ: CKS=%d,%d\r\n\0"),rdCheckSum, FCB.ff_buffer[xSize] );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	if ( rdCheckSum != FCB.ff_buffer[xSize] ) {
 		FCB.ff_stat.errno = pdFF_ERRNO_RDCKS;
@@ -478,8 +478,6 @@ uint16_t tryes;
 uint16_t rcd_nbr;
 uint16_t eeAddress = 0;
 
-	wdt_reset();
-
 	// Lo primero es obtener el semaforo del I2C
 	FreeRTOS_ioctl(&pdI2C,ioctlOBTAIN_BUS_SEMPH, NULL, DEBUG_FF);
 
@@ -501,7 +499,7 @@ uint16_t eeAddress = 0;
 			if ( memcmp (&FCB.check_buffer, &FCB.ff_buffer, FF_RECD_SIZE) == 0 )
 				break;
 			if  ( tryes == 3 ) {
-				snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("FFrew ERR: %d,%d\r\n\0"),rcd_nbr, eeAddress);
+				FRTOS_snprintf( debug_printfBuff,sizeof(debug_printfBuff),"FFrew ERR: %d,%d\r\n\0",rcd_nbr, eeAddress);
 				FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff));
 			}
 
@@ -521,7 +519,7 @@ uint16_t eeAddress = 0;
 	FreeRTOS_ioctl(&pdI2C,ioctlRELEASE_BUS_SEMPH, NULL, DEBUG_FF);
 
 	// RESET
-	u_reset();
+	//pub_reset();
 
 }
 //------------------------------------------------------------------------------------

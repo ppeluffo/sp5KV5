@@ -16,6 +16,27 @@
  *
  * !! Agregar el salir automaticamente luego de 30 mins del modo service.
  *
+ * V5.1.2:
+ * - Elimino el uso del sprintf_P e implemento un FRTOS_sprintf. ( no uso progmspace aun )
+ * - Agrego al compilador las flags "-fno-move-loop-invariants -Werror=implicit-function-declaration"
+ * - Modifico el sistema de menues para que sea mas ordenado.
+ * - Agrego la funcion kill.
+ * - Elimino el modo SERVICE
+ * - Elimino loglevel
+ * - Los debuglevel no son acumulativos.
+ * - tkControl: elimino el tilt, exitServiceMode
+ * - tkDigital: elimino lo referente a medir pulsos por tiempo.
+ *              pongo todas las funciones de pulsos en este archivo.
+ * - tkAnalog:
+ * - Watchdog:
+ *   Lo implemento con un timer para c/tarea. Esta en el kick_wdg resetea el timer correspondiente.
+ *   La tarea de wdg disminuye el contador c/s. Si alguno llego a 0 indica que la tarea se colgo y
+ *   entonces se resetea el sistema.
+ *
+ *
+ * V5.1.1:
+ * Elimino el tilt y lo pongo como una entrada digital del nivel.
+ *
  * V5.0.8:
  * En tkAnalog incorpora una flag para saber si estoy en el primer frame.
  * Si es asi lo descarto ya que sino el caudal es 0 lo cual es incorrecto.
@@ -168,7 +189,6 @@ unsigned int i,j;
 
 	// Inicializacion de modulos de las tareas que deben hacerce antes
 	// de arrancar el FRTOS
-	tkAnalogInit();
 
 	// Creo las tasks
 	xTaskCreate(tkCmd, "CMD", tkCmd_STACK_SIZE, NULL, tkCmd_TASK_PRIORITY,  &xHandle_tkCmd);
@@ -178,8 +198,6 @@ unsigned int i,j;
 	xTaskCreate(tkGprsTx, "GPRS", tkGprs_STACK_SIZE, NULL, tkGprs_TASK_PRIORITY,  &xHandle_tkGprs);
 	xTaskCreate(tkGprsRx, "GPRX", tkGprsRx_STACK_SIZE, NULL, tkGprsRx_TASK_PRIORITY,  &xHandle_tkGprsRx);
 	xTaskCreate(tkOutputs, "OUTS", tkOutputs_STACK_SIZE, NULL, tkOutputs_TASK_PRIORITY,  &xHandle_tkOutputs);
-
-	systemWdg = WDG_CTL + WDG_CMD + WDG_DIN + WDG_AIN + WDG_OUT;
 
 	/* Arranco el RTOS. */
 	vTaskStartScheduler();
@@ -201,7 +219,7 @@ void vApplicationIdleHook( void )
 
 	for(;;) {
 
-		if ( ( u_modem_prendido() == false ) && ( u_terminal_is_on() == false) && ( MODO_DISCRETO )) {
+		if ( ( u_modem_prendido() == false ) && ( pub_control_terminal_is_on() == false) && ( MODO_DISCRETO )) {
 			sleep_mode();
 		}
 	}

@@ -17,6 +17,7 @@
 
 #include "FreeRTOS.h"
 #include "FRTOS-IO.h"
+#include "FRTOS_stdio.h"
 
 //#define ff_DEBUG
 

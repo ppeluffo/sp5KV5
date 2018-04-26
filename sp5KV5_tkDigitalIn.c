@@ -32,16 +32,14 @@ static void pv_procesar_caudales(uint8_t channel);
 static char dIn_printfBuff[CHAR128];	// Buffer de impresion
 
 struct {
-	uint32_t t_start[NRO_DIGITAL_CHANNELS];		// Incio de pulso
 	uint8_t level[NRO_DIGITAL_CHANNELS];		// nivel logico de la entrada
-
 	uint16_t pulse_count[NRO_DIGITAL_CHANNELS];
-	float pulse_period[NRO_DIGITAL_CHANNELS];
 	float caudal[NRO_DIGITAL_CHANNELS];
-	char metodo_medida[NRO_DIGITAL_CHANNELS];
 
 } pv_Qdata;
 
+// La tarea pasa por el mismo lugar c/100ms.
+#define WDG_DIN_TIMEOUT	3
 
 //------------------------------------------------------------------------------------
 void tkDigitalIn(void * pvParameters)
@@ -53,31 +51,26 @@ uint8_t i;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("starting tkDigitalIn..\r\n\0"));
+	FRTOS_snprintf( dIn_printfBuff,sizeof(dIn_printfBuff),"starting tkDigitalIn..\r\n\0");
 	FreeRTOS_write( &pdUART1, dIn_printfBuff, sizeof(dIn_printfBuff) );
 
 	// Inicializo los latches borrandolos
 	pv_clearQ();
 
 	for ( i = 0; i < NRO_DIGITAL_CHANNELS; i++ ) {
-		pv_Qdata.t_start[i] = 0;		// Con 0 indico que estoy comenzando y va a venir el primer pulso.
 		pv_Qdata.level[i] = 0;
-
 		pv_Qdata.pulse_count[i] = 0;
-		pv_Qdata.pulse_period[i] = 0.0;
 		pv_Qdata.caudal[i] = 0.0;
-		pv_Qdata.metodo_medida[i] = 'x';
 	}
 
 	for( ;; )
 	{
 
-		u_kick_Wdg(WDG_DIN);
+		pub_control_watchdog_kick(WDG_DIN, WDG_DIN_TIMEOUT);
 
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
 		// Poleo las entradas
-
 		pv_pollQ();
 	}
 
@@ -92,25 +85,23 @@ static void pv_pollQ(void)
 
 bool debugQ = false;
 bool retS;
-uint8_t pos = 0;
 
 	// Leo el GPIO.
 	retS = IO_read_pulseInputs( &pv_Qdata.level[0], &pv_Qdata.level[1] );
+
 	if ( retS ) {
 		debugQ = false;
 		debugQ |= pv_procesar_pulso(0);
 		debugQ |= pv_procesar_pulso(1);
 	} else {
-		snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("%s dDATA::poll: READ DIN ERROR !!\r\n\0"), u_now() );
-		u_debugPrint(( D_BASIC + D_DIGITAL), dIn_printfBuff, sizeof(dIn_printfBuff) );
+		FRTOS_snprintf( dIn_printfBuff,sizeof(dIn_printfBuff),"DIGITAL: poll READ DIN ERROR !!\r\n\0");
+		FreeRTOS_write( &pdUART1, dIn_printfBuff, sizeof(dIn_printfBuff) );
 		goto quit;
 	}
 
-	if ( ((systemVars.debugLevel & D_DIGITAL) != 0) && debugQ ) {
-		pos = snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("%s dDATA::poll: "),u_now());
-		pos += snprintf_P( &dIn_printfBuff[pos],sizeof(dIn_printfBuff),PSTR("{p0=%d,dT0=%.1f}"),pv_Qdata.pulse_count[0], pv_Qdata.pulse_period[0] );
-		pos += snprintf_P( &dIn_printfBuff[pos],sizeof(dIn_printfBuff),PSTR(" {p1=%d,dT1=%.1f}\r\n\0"),pv_Qdata.pulse_count[1], pv_Qdata.pulse_period[1]);
-		u_debugPrint( D_DIGITAL, dIn_printfBuff, sizeof(dIn_printfBuff) );
+	if ( (systemVars.debugLevel == D_DIGITAL) && debugQ ) {
+		FRTOS_snprintf( dIn_printfBuff,sizeof(dIn_printfBuff),"DIGITAL: poll {p0=%d,p1=%d}\r\n\0",pv_Qdata.pulse_count[0], pv_Qdata.pulse_count[1] );
+		FreeRTOS_write( &pdUART1, dIn_printfBuff, sizeof(dIn_printfBuff) );
 	}
 
 quit:
@@ -143,15 +134,8 @@ bool pv_procesar_pulso(uint8_t channel)
 	// Si no detecte un flanco retorno false porque no tengo nada que mostrar.
 
 	if ( pv_Qdata.level[channel] == 0 ) {		// Los flancos que detecto son de bajada.
-
 		// incremento los pulsos
 		pv_Qdata.pulse_count[channel]++;
-
-		// Mido el tiempo desde el pulso anterior
-		if ( pv_Qdata.t_start[channel] > 0 ) {
-			pv_Qdata.pulse_period[channel] = (ticks - pv_Qdata.t_start[channel]) * 0.01 ;	// elapsed time
-		}
-		pv_Qdata.t_start[channel] = ticks;
 		return(true);
 
 	} else {
@@ -165,7 +149,7 @@ static void pv_procesar_caudales(uint8_t channel)
 	// Llego una senal de tkAnalog que expiro el timerPoll por lo que se deben
 	// hacer los calculos de caudal para el intervalo dado.
 
-float Q_x_pulsos, Q_x_tiempo;
+float Q_x_pulsos;
 
 	// Caudal por pulsos.
 	Q_x_pulsos = 0.0;
@@ -173,61 +157,63 @@ float Q_x_pulsos, Q_x_tiempo;
 		Q_x_pulsos = pv_Qdata.pulse_count[channel] * systemVars.magPP[0] * 3600 / systemVars.timerPoll;
 	}
 
-	// Caudal por tiempo.
-	Q_x_tiempo = 0.0;
-	if ( ( systemVars.magPP[channel] > 0) && ( pv_Qdata.pulse_period[channel] > 0 ) ) {
-		Q_x_tiempo = systemVars.magPP[channel] * 3600 / pv_Qdata.pulse_period[channel];
-	}
-	if ( Q_x_tiempo < 1 ) {			// Si el caudal es muy bajo < 1, queda en 0.
-		Q_x_tiempo = 0.0;
-	}
-
 	// Veo cual caudal usar
 	pv_Qdata.caudal[channel] = 0;
-	if ( pv_Qdata.pulse_count[channel] > 20 ) {
-
-		// pulsos
-		pv_Qdata.caudal[channel] = Q_x_pulsos;
-		pv_Qdata.metodo_medida[channel] = 'p';
-
-	} else {
-
-		// delta_T
-		pv_Qdata.caudal[channel] = Q_x_tiempo;
-		pv_Qdata.metodo_medida[channel] = 't';
-	}
+	pv_Qdata.caudal[channel] = Q_x_pulsos;
 
 	// Reseteo los contadores.
 	pv_Qdata.pulse_count[channel] = 0;
-	pv_Qdata.pulse_period[channel] = 0;
 
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS
 //------------------------------------------------------------------------------------
-void u_readDigitalCounters( dinData_t *dIn )
+void pub_digital_read_counters( dinData_t *dIn )
 {
 	// Esta funcion es invocada SOLO desde tkDigital que es la que marca el ritmo
 	// del poleo.
 	// Calcula los caudales y copio los valores de los contadores en la estructura dIn.
 	// De este modo quedan sincronizados los valores digitales al intervalo en que se midieron.
 
-uint16_t pos;
-
-	if ( (systemVars.debugLevel & D_DIGITAL) != 0)  {
-		pos = snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff), PSTR("%s dDATA::frame " ), u_now() );
-		pos += snprintf_P( &dIn_printfBuff[pos],sizeof(dIn_printfBuff),PSTR("{p0=%d,dT0=%.1f}"),pv_Qdata.pulse_count[0], pv_Qdata.pulse_period[0] );
-		pos += snprintf_P( &dIn_printfBuff[pos],sizeof(dIn_printfBuff),PSTR(" {p1=%d,dT1=%.1f}\r\n\0"),pv_Qdata.pulse_count[1], pv_Qdata.pulse_period[1]);
-		u_debugPrint( D_DIGITAL, dIn_printfBuff, sizeof(dIn_printfBuff) );
-	}
-
 	pv_procesar_caudales(0);
 	pv_procesar_caudales(1);
 
 	dIn->caudal[0] = pv_Qdata.caudal[0];
 	dIn->caudal[1] = pv_Qdata.caudal[1];
-	dIn->metodo_medida[0] = pv_Qdata.metodo_medida[0];
-	dIn->metodo_medida[1] = pv_Qdata.metodo_medida[1];
+
+}
+//------------------------------------------------------------------------------------
+bool pub_digital_config_channel( uint8_t channel, char *chName, char *s_magPP )
+{
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+		taskYIELD();
+
+	if ( chName != NULL ) {
+		memset ( systemVars.dChName[channel], '\0',   PARAMNAME_LENGTH );
+		memcpy( systemVars.dChName[channel], chName , ( PARAMNAME_LENGTH - 1 ));
+	}
+
+	if ( s_magPP != NULL ) {
+		if ( atof(s_magPP) == 0 ) {
+			systemVars.magPP[channel] = 0.1;
+		} else {
+			systemVars.magPP[channel] = atof(s_magPP);
+		}
+	}
+
+	xSemaphoreGive( sem_SYSVars );
+	return(true);
+
+}
+//----------------------------------------------------------------------------------------
+void pub_digital_load_defaults(void)
+{
+
+	// Realiza la configuracion por defecto de los canales digitales.
+	strncpy_P(systemVars.dChName[0], PSTR("v0\0"),3);
+	systemVars.magPP[0] = 0.1;
+	strncpy_P(systemVars.dChName[1], PSTR("v1\0"),3);
+	systemVars.magPP[1] = 0.1;
 
 }
 //------------------------------------------------------------------------------------

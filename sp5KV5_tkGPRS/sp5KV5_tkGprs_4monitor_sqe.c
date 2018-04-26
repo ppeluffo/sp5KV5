@@ -54,18 +54,8 @@ static bool pv_procesar_signals_monsqe( void )
 
 bool ret_f = false;
 
-	if ( GPRS_stateVars.signal_reload) {
-		// Salgo a reiniciar tomando los nuevos parametros.
-		ret_f = true;
-		goto EXIT;
-	}
-
-	ret_f = false;
-
 EXIT:
 
-	GPRS_stateVars.signal_reload = false;
-	GPRS_stateVars.signal_tilt = false;
 	GPRS_stateVars.signal_redial = false;
 	GPRS_stateVars.signal_frameReady = false;
 
@@ -94,7 +84,7 @@ char *ts = NULL;
 		systemVars.dbm = 113 - 2 * systemVars.csq;
 
 		if ( (systemVars.debugLevel &  ( D_BASIC + D_GPRS ) ) != 0) {
-			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::monsqe: CSQ=%d,DBM=%d\r\n\0"), u_now(),systemVars.csq,systemVars.dbm );
+			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: CSQ=%d,DBM=%d\r\n\0",systemVars.csq,systemVars.dbm );
 			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		}
 

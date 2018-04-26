@@ -10,9 +10,22 @@
 static uint8_t pv_paramLoad(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
 static uint8_t pv_paramStore(uint8_t* data, uint8_t* addr, uint16_t sizebytes);
 static uint8_t pv_checkSum ( uint8_t *data,uint16_t sizebytes );
-static void pv_convert_str_to_time_t ( char *time_str, time_t *time_struct);
 
+//------------------------------------------------------------------------------------
+void pub_convert_str_to_time_t ( char *time_str, time_t *time_struct )
+{
 
+	// Convierte un string hhmm en una estructura time_type que tiene
+	// un campo hora y otro minuto
+
+uint16_t time_num;
+
+	time_num = atol(time_str);
+	time_struct->hour = (uint8_t) (time_num / 100);
+	time_struct->min = (uint8_t)(time_num % 100);
+
+}
+//----------------------------------------------------------------------------------------
 void u_uarts_ctl(uint8_t cmd)
 {
 
@@ -54,150 +67,23 @@ static bool modem_prendido = false;
 
 }
 //----------------------------------------------------------------------------------------
-void spy_delay( uint16_t us )
-{
-	// A 8Mhz, c/instruccion son 0.125uS.
-
-	while (us-->0 ) {
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-		asm("nop");
-	}
-
-}
-//----------------------------------------------------------------------------------------
-void u_panic( uint8_t panicCode )
-{
-char msg[16];
-
-	snprintf_P( msg,sizeof(msg),PSTR("\r\nPANIC(%d)\r\n\0"), panicCode);
-	FreeRTOS_write( &pdUART1,  msg, sizeof( msg) );
-	vTaskDelay( ( TickType_t)( 20 / portTICK_RATE_MS ) );
-	vTaskSuspendAll ();
-	vTaskEndScheduler ();
-	exit (1);
-}
-//----------------------------------------------------------------------------------------
-bool u_configOutputs( uint8_t modo, char *param1, char *param2 )
-{
-	// Configura las salidas en el systemVars.
-	// Manda una señal a la tkOutput.
-
-	switch(modo) {
-	case OUT_OFF:
-		systemVars.outputs.modo = OUT_OFF;
-		break;
-	case OUT_CONSIGNA:
-		systemVars.outputs.modo = OUT_CONSIGNA;
-		if ( param1 != NULL ) { pv_convert_str_to_time_t(param1, &systemVars.outputs.consigna_diurna); }
-		if ( param2 != NULL ) { pv_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
-		break;
-	case OUT_NORMAL:
-		systemVars.outputs.modo = OUT_NORMAL;
-		if ( param1 != NULL ) { ( atoi(param1) == 0 )? ( systemVars.outputs.out0 = 0) : (systemVars.outputs.out0 = 1); }
-		if ( param2 != NULL ) { ( atoi(param2) == 0 )? ( systemVars.outputs.out1 = 0) : (systemVars.outputs.out1 = 1); }
-		break;
-	}
-
-	// tk_Output: notifico en modo persistente. Si no puedo, me voy a resetear por watchdog. !!!!
-	while ( xTaskNotify(xHandle_tkOutputs, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
-		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-	}
-
-	return(true);
-
-}
-//----------------------------------------------------------------------------------------
-bool u_configAnalogCh( uint8_t channel, char *chName, char *s_iMin, char *s_iMax, char *s_mMin, char *s_mMax )
-{
-	// p1 = name, p2 = iMin, p3 = iMax, p4 = mMin, p5 = mMax
-
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
-		taskYIELD();
-
-	if ( chName != NULL ) {
-		memset ( systemVars.aChName[channel], '\0',   PARAMNAME_LENGTH );
-		memcpy( systemVars.aChName[channel], chName , ( PARAMNAME_LENGTH - 1 ));
-	}
-
-	if ( s_iMin != NULL ) { systemVars.Imin[channel] = atoi(s_iMin); }
-	if ( s_iMax != NULL ) {	systemVars.Imax[channel] = atoi(s_iMax); }
-	if ( s_mMin != NULL ) {	systemVars.Mmin[channel] = atoi(s_mMin); }
-	if ( s_mMax != NULL ) {	systemVars.Mmax[channel] = atof(s_mMax); }
-
-	xSemaphoreGive( sem_SYSVars );
-
-	return(true);
-
-}
-//----------------------------------------------------------------------------------------
-bool u_configDigitalCh( uint8_t channel, char *chName, char *s_magPP )
-{
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
-		taskYIELD();
-
-	if ( chName != NULL ) {
-		memset ( systemVars.dChName[channel], '\0',   PARAMNAME_LENGTH );
-		memcpy( systemVars.dChName[channel], chName , ( PARAMNAME_LENGTH - 1 ));
-	}
-
-	if ( s_magPP != NULL ) {
-		if ( atof(s_magPP) == 0 ) {
-			systemVars.magPP[channel] = 0.1;
-		} else {
-			systemVars.magPP[channel] = atof(s_magPP);
-		}
-	}
-
-	xSemaphoreGive( sem_SYSVars );
-	return(true);
-
-}
-//----------------------------------------------------------------------------------------
-bool u_configTimerDial(char *s_tDial)
+bool pub_configTimerDial(char *s_tDial)
 {
 uint32_t tdial;
 
-	tdial = (uint32_t) ( atol(s_tDial) );
+	// tdial es el tiempo de discado en segundos.
+	// Puede ser 0 ( CONTINUO ) o mayor a 900 ( 15 minutos )
 
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
-		taskYIELD();
+	tdial = (uint32_t) ( atol(s_tDial) );
+	if ( tdial < 900 ) {
+		tdial = 0;
+	}
+
 	systemVars.timerDial = tdial;
-	xSemaphoreGive( sem_SYSVars );
 
 	return(true);
 }
 //----------------------------------------------------------------------------------------
-bool u_configTimerPoll(char *s_tPoll)
-{
-	// Configura el tiempo de poleo.
-	// El cambio puede ser desde tkCmd o tkGprs(init frame)
-	// Le avisa a la tarea tkAnalog del cambio
-
-uint16_t tpoll;
-
-	tpoll = abs((uint16_t) ( atol(s_tPoll) ));
-	if ( tpoll < 15 ) { tpoll = 15; }
-
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
-		taskYIELD();
-
-	systemVars.timerPoll = tpoll;
-	xSemaphoreGive( sem_SYSVars );
-
-	// tk_aIn: Notifico en modo persistente. Si no puedo me voy a resetear por watchdog. !!!!
-	while ( xTaskNotify(xHandle_tkAIn, TK_PARAM_RELOAD , eSetBits ) != pdPASS ) {
-		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-	}
-
-	return(true);
-}
-//------------------------------------------------------------------------------------
 void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 {
 	// Recibe como parametros el modo ( 0,1) y punteros a string con las horas de inicio y fin del pwrsave
@@ -208,20 +94,13 @@ void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 
 	systemVars.pwrSave.modo = modoPwrSave;
 
-	if ( s_startTime != NULL ) { pv_convert_str_to_time_t( s_startTime, &systemVars.pwrSave.hora_start); }
-	if ( s_endTime != NULL ) { pv_convert_str_to_time_t( s_endTime, &systemVars.pwrSave.hora_fin); }
+	if ( s_startTime != NULL ) { pub_convert_str_to_time_t( s_startTime, &systemVars.pwrSave.hora_start); }
+	if ( s_endTime != NULL ) { pub_convert_str_to_time_t( s_endTime, &systemVars.pwrSave.hora_fin); }
 
 	xSemaphoreGive( sem_SYSVars );
 
 }
 //----------------------------------------------------------------------------------------
-void u_kick_Wdg( uint8_t wdgId )
-{
-	// Pone el correspondiente bit del wdg en 0.
-	systemWdg &= ~wdgId ;
-
-}
-//------------------------------------------------------------------------------------
 bool u_saveSystemParams(void)
 {
 	// Salva el systemVars en la EE y verifica que halla quedado bien.
@@ -298,7 +177,6 @@ uint8_t i;
 //------------------------------------------------------------------------------------
 void u_loadDefaults(void)
 {
-uint8_t channel;
 
 // Configura el systemVars con valores por defecto.
 
@@ -325,38 +203,16 @@ uint8_t channel;
 	systemVars.debugLevel = D_BASIC;
 
 	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),IP_LENGTH);
-	systemVars.timerPoll = 300;			// Poleo c/5 minutos
 	systemVars.timerDial = 1800;		// Transmito c/3 hs.
 
-	// Todos los canales quedan por default en 0-20mA, 0-6k.
-	for ( channel = 0; channel < NRO_ANALOG_CHANNELS ; channel++) {
-		systemVars.Imin[channel] = 0;
-		systemVars.Imax[channel] = 20;
-		systemVars.Mmin[channel] = 0;
-		systemVars.Mmax[channel] = 6.0;
-	}
+	// Analogico
+	pub_analog_load_defaults();
 
-	strncpy_P(systemVars.aChName[0], PSTR("pA\0"),3);
-	strncpy_P(systemVars.aChName[1], PSTR("pB\0"),3);
-	strncpy_P(systemVars.aChName[2], PSTR("pC\0"),3);
-
-	// Canales digitales
-	strncpy_P(systemVars.dChName[0], PSTR("v0\0"),3);
-	systemVars.magPP[0] = 0.1;
-	strncpy_P(systemVars.dChName[1], PSTR("v1\0"),3);
-	systemVars.magPP[1] = 0.1;
-
-	// Detector de Tilt.
-	systemVars.tiltEnabled = false;
+	// digital
+	pub_digital_load_defaults();
 
 	// Salidas:
-	systemVars.outputs.modo = OUT_OFF;
-	systemVars.outputs.out0 = 0;
-	systemVars.outputs.out1 = 0;
-	systemVars.outputs.consigna_diurna.hour = 05;
-	systemVars.outputs.consigna_diurna.min = 30;
-	systemVars.outputs.consigna_nocturna.hour = 23;
-	systemVars.outputs.consigna_nocturna.min = 30;
+	pub_outputs_load_defaults();
 
 	// PwrSave
 	systemVars.pwrSave.modo = modoPWRSAVE_ON;
@@ -370,20 +226,6 @@ uint8_t channel;
 
 }
 //------------------------------------------------------------------------------------
-char *u_now(void)
-{
-
-	// Devuelve un puntero a un string con la fecha y hora formateadas para usar en
-	// los mensajes de log.
-
-RtcTimeType_t rtcDateTime;
-
-	RTC_read(&rtcDateTime);
-	rtcDateTime.year -= 2000;
-	snprintf_P( nowStr,sizeof(nowStr), PSTR("%02d/%02d/%02d %02d:%02d:%02d\0"),rtcDateTime.day,rtcDateTime.month,rtcDateTime.year,rtcDateTime.hour,rtcDateTime.min,rtcDateTime.sec );
-	return(nowStr);
-}
-//------------------------------------------------------------------------------------
 void u_debugPrint(uint8_t debugCode, char *msg, uint16_t size)
 {
 
@@ -392,7 +234,7 @@ void u_debugPrint(uint8_t debugCode, char *msg, uint16_t size)
 	}
 }
 //------------------------------------------------------------------------------------
-void u_reset(void)
+void pub_reset(void)
 {
 	wdt_enable(WDTO_30MS);
 	while(1) {}
@@ -452,19 +294,5 @@ uint8_t checksum=0;
 		checksum += data[i];
 	checksum = ~checksum;
 	return(checksum);
-}
-//------------------------------------------------------------------------------------
-static void pv_convert_str_to_time_t ( char *time_str, time_t *time_struct )
-{
-
-	// Convierte un string hhmm en una estructura time_type que tiene
-	// un campo hora y otro minuto
-
-uint16_t time_num;
-
-	time_num = atol(time_str);
-	time_struct->hour = (uint8_t) (time_num / 100);
-	time_struct->min = (uint8_t)(time_num % 100);
-
 }
 //------------------------------------------------------------------------------------

@@ -43,8 +43,8 @@ uint8_t xBytes = 0;
 	xReturn = FreeRTOS_read(&pdI2C, data, xBytes);
 
 #ifdef ee_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("++DEBUG EE_READ: xBytes:0x%02x, xReturn:0x%02x\r\n\0"),xBytes,xReturn );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("++DEBUG EE_READ: xBytes:0x%02x, xReturn:0x%02x\r\n\0"),xBytes,xReturn );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	// Y libero el semaforo.
@@ -71,8 +71,8 @@ uint8_t xBytes = 0;
 uint16_t n, pageBytesFree;
 
 #ifdef ee_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("++DEBUG EE_WRITE: eeAddress:0x%02x, length:0x%02x\r\n\0"),eeAddress,length );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("++DEBUG EE_WRITE: eeAddress:0x%02x, length:0x%02x\r\n\0"),eeAddress,length );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 	// Lo primero es obtener el semaforo
 	//FreeRTOS_ioctl(&pdI2C,ioctlOBTAIN_BUS_SEMPH, NULL, DEBUG_EE);
@@ -99,8 +99,8 @@ uint16_t n, pageBytesFree;
 	xReturn = FreeRTOS_write(&pdI2C, data, xBytes);
 
 #ifdef ee_DEBUG
-		snprintf_P( debug_printfBuff,CHAR128,PSTR("++DEBUG EE_WRITE: eeAddress:0x%02x, xBytes:0x%02x, xReturn:0x%02x\r\n\0"),eeAddress,xBytes,xReturn );
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+//		snprintf_P( debug_printfBuff,CHAR128,PSTR("++DEBUG EE_WRITE: eeAddress:0x%02x, xBytes:0x%02x, xReturn:0x%02x\r\n\0"),eeAddress,xBytes,xReturn );
+//		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 #endif
 
 	// Y libero el semaforo.

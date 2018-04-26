@@ -20,6 +20,7 @@
 
 #include "FRTOS-IO.h"
 #include "sp5K_i2c.h"
+#include "FRTOS_stdio.h"
 
 //#define rtc_DEBUG
 

@@ -30,10 +30,8 @@ bool exit_flag = false;
 	u_uarts_ctl(MODEM_APAGAR);
 
 	// Secuencia para apagar el modem y dejarlo en modo low power.
-	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::wait: Apago modem\r\n\0"), u_now());
-		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-	}
+	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: Apago modem\r\n\0");
+	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	GPRS_stateVars.modem_prendido = false;
 	strncpy_P(systemVars.dlg_ip_address, PSTR("000.000.000.000\0"),16);
@@ -121,11 +119,6 @@ static void pv_calcular_tiempo_espera(void)
 		}
 		break;
 
-	case WK_SERVICE:
-		// Debo dejar apagado el modem. Si lo necesito lo prendo por cmdline
-		waiting_time = 0xFFFF;
-		break;
-
 	case WK_MONITOR_SQE:
 		// Debo prender cuanto antes ( 10s ) para ir a monitorear el sqe
 		waiting_time = 10;
@@ -136,8 +129,8 @@ static void pv_calcular_tiempo_espera(void)
 		break;
 	}
 
-	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::wait: %lu s\r\n\0"), u_now(), waiting_time );
+	if ( systemVars.debugLevel == D_GPRS ) {
+		FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: await %lu s\r\n\0", waiting_time );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -153,11 +146,6 @@ static bool pv_check_inside_pwrSave(void)
 RtcTimeType_t rtcDateTime;
 uint16_t now, pwr_save_start, pwr_save_end ;
 bool insidePwrSave_flag = false;
-
-	if ( (systemVars.debugLevel & D_GPRS ) != 0) {
-		snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::wait: check pwrsave\r\n\0"), u_now() );
-		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-	}
 
 	// Estoy en modo PWR_DISCRETO con PWR SAVE ACTIVADO
 	if ( ( MODO_DISCRETO ) && ( systemVars.pwrSave.modo == modoPWRSAVE_ON )) {
@@ -189,11 +177,11 @@ bool insidePwrSave_flag = false;
 
 EXIT:
 
-	if ( (systemVars.debugLevel & (D_BASIC + D_GPRS) ) != 0) {
+	if ( systemVars.debugLevel == D_GPRS ) {
 		if ( insidePwrSave_flag == true ) {
-			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::wait: inside pwrsave\r\n\0"), u_now() );
+			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: wait inside pwrsave\r\n\0" );
 		} else {
-			snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("%s GPRS::wait: out pwrsave\r\n\0"), u_now() );
+			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: wait out pwrsave\r\n\0" );
 		}
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
@@ -206,20 +194,6 @@ static bool pv_procesar_signals_espera( bool *exit_flag )
 {
 
 bool ret_f = false;
-
-	if ( GPRS_stateVars.signal_reload) {
-		// Salgo a reiniciar tomando los nuevos parametros.
-		*exit_flag = bool_RESTART;
-		ret_f = true;
-		goto EXIT;
-	}
-
-	if ( GPRS_stateVars.signal_tilt) {
-		// Salgo a discar inmediatamente.
-		*exit_flag = bool_CONTINUAR;
-		ret_f = true;
-		goto EXIT;
-	}
 
 	if ( GPRS_stateVars.signal_redial) {
 		// Salgo a discar inmediatamente.
@@ -240,8 +214,6 @@ bool ret_f = false;
 	ret_f = false;
 EXIT:
 
-	GPRS_stateVars.signal_reload = false;
-	GPRS_stateVars.signal_tilt = false;
 	GPRS_stateVars.signal_redial = false;
 	GPRS_stateVars.signal_frameReady = false;
 
