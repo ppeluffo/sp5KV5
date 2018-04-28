@@ -8,31 +8,60 @@
 #ifndef FRTOS_IO_FRTOS_STDIO_H_
 #define FRTOS_IO_FRTOS_STDIO_H_
 
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-//#include "printf.h"
-//----------------------------------------------------------------------------
-// buffer size used omly for printf (created on stack)
-//#define PRINTF_BUFFER_SIZE        128U
+#include <string.h>
+#include <avr/pgmspace.h>
 
-// ntoa conversion buffer size, this must be big enough to hold
-// one converted numeric number including padded zeros (created on stack)
-#define PRINTF_NTOA_BUFFER_SIZE    32U
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
 
-// ftoa conversion buffer size, this must be big enough to hold
-// one converted float number including padded zeros (created on stack)
-#define PRINTF_FTOA_BUFFER_SIZE    32U
+xSemaphoreHandle sem_PRINTF;
 
-// define this to support floating point (%f)
-#define PRINTF_FLOAT_SUPPORT
+void FRTOS_stdio_init(void);
 
-// define this to support long long types (%llu or %p)
-//#define PRINTF_LONG_LONG_SUPPORT
+/**
+ * Output a character to a custom device like UART, used by the printf() function
+ * This function is declared here only. You have to write your custom implementation somewhere
+ * \param character Character to output
+ */
+//void _putchar(char character);
 
-int FRTOS_sprintf(char* buffer, const char* format, ...);
-int FRTOS_snprintf(char* buffer, size_t count, const char* format, ...);
-int FRTOS_snprintf_P(char* buffer, size_t count, const char* format, ...);
 
+/**
+ * Tiny printf implementation
+ * You have to implement _putchar if you use printf()
+ * \param format A string that specifies the format of the output
+ * \return The number of characters that are written into the array, not counting the terminating null character
+ */
+//int printf(const char* format, ...);
+
+
+/**
+ * Tiny sprintf implementation
+ * Due to security reasons (buffer overflow) YOU SHOULD CONSIDER USING SNPRINTF INSTEAD!
+ * \param buffer A pointer to the buffer where to store the formatted string. MUST be big enough to store the output!
+ * \param format A string that specifies the format of the output
+ * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
+ */
+int sprintf(char* buffer, const char* format, ...);
+
+
+/**
+ * Tiny snprintf/vsnprintf implementation
+ * \param buffer A pointer to the buffer where to store the formatted string
+ * \param count The maximum number of characters to store in the buffer, including a terminating null character
+ * \param format A string that specifies the format of the output
+ * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
+ *         If the formatted string is truncated the buffer size (count) is returned
+ */
+int  snprintf(char* buffer, size_t count, const char* format, ...);
+
+int vsnprintf(char* buffer, size_t count, const char* format, va_list va);
+
+int  FRTOS_snprintf_P(char* buffer, size_t count, const char* format, ...);
 #endif /* FRTOS_IO_FRTOS_STDIO_H_ */

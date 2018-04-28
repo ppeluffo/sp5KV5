@@ -37,7 +37,7 @@ TickType_t xLastWakeTime;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf( aIn_printfBuff,sizeof(aIn_printfBuff),"starting tkAnalogIn..\r\n\0");
+	FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("starting tkAnalogIn..\r\n\0"));
 	FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 
     // Initialise the xLastWakeTime variable with the current time.
@@ -54,17 +54,12 @@ TickType_t xLastWakeTime;
 
     	pub_control_watchdog_kick(WDG_AIN, WDG_AIN_TIMEOUT);
 
-		vTaskDelayUntil( &xLastWakeTime, waiting_ticks ); // Da el tiempo para entrar en tickless.
-
 		// Leo analog,digital,rtc,salvo en BD e imprimo.
 		pub_analog_read_frame(true);
 
 		// Espero un ciclo
-		while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
-			taskYIELD();
 		waiting_ticks = (uint32_t)(systemVars.timerPoll) * 1000 / portTICK_RATE_MS;
-		xSemaphoreGive( sem_SYSVars );
-
+		vTaskDelayUntil( &xLastWakeTime, waiting_ticks );
 	}
 
 }
@@ -79,16 +74,19 @@ void pub_analog_read_frame(bool saveInBD )
 	// da el comando read frame.
 
 static bool primer_frame = true;
+	// El primer frame puede tener errores en las medidas digitales ya que no corresponden
+	// a un ciclo completo por lo tanto lo descarto.
 bool retS = false;
 uint8_t channel;
 
-	// Leo los canales analogicos.
+	// Leo el ADC para tener los  canales analogicos.
 	pv_analog_read_adc();
 
 	// Convierto los valores a magnitudes
 	pv_analog_convert_raw_to_mag();
 
 	// Armo el frame.
+
 	memset(&pv_data_frame,'\0', sizeof(frameData_t));
 
 	// Agrego el timestamp
@@ -111,7 +109,7 @@ uint8_t channel;
 	// Para no incorporar el error de los contadores en el primer frame no lo guardo.
 	if ( primer_frame ) {
 		primer_frame = false;
-		return;
+		saveInBD = false;
 	}
 
 	// Si me invocaron por modo comando, no salvo en BD
@@ -119,11 +117,12 @@ uint8_t channel;
 		// Modo normal: salvo en la BD
 		retS = pv_analog_save_frame_inBD();
 		if ( !retS ) {
-			FRTOS_snprintf( aIn_printfBuff, sizeof(aIn_printfBuff) , "Data BD save ERROR !!\r\n\0");
+			FRTOS_snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff) ,PSTR("DATA: BD save ERROR !!\r\n\0"));
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 			return;
 		}
-		// y aviso a tkGprs que hay un frame listo
+
+		// y aviso a tkGprs que hay un frame listo. En modo continuo lo va a trasmitir enseguida.
 		while ( xTaskNotify(xHandle_tkGprsRx, TK_FRAME_READY , eSetBits ) != pdPASS ) {
 			vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 		}
@@ -146,7 +145,7 @@ uint8_t items;
 
 // Entry:
 	if ( systemVars.debugLevel == D_DATA)  {
-		FRTOS_snprintf( aIn_printfBuff,sizeof(aIn_printfBuff),"DATA: poll\r\n\0" );
+		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: poll\r\n\0" ));
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
 
@@ -157,12 +156,12 @@ uint8_t items;
 	ADC_read( 0, &adcRetValue);
 	vTaskDelay( ( TickType_t)( 1500 / portTICK_RATE_MS ) );
 
-	// Init Data Structure
+	// Inicializo la estructura de datos
 	for (channel = 0; channel < (NRO_ANALOG_CHANNELS + 1); channel++ )
 		for (items = 0; items < CICLOS_POLEO; items++ )
 			adc_samples[channel][items] = 0.0;
 
-	// Poleo
+	// Poleo c/canal CICLOS_POLEO veces espaciados 250 ms.
 	for ( items = 0; items < CICLOS_POLEO; items++)
 	{
 		for ( channel = 0; channel < (NRO_ANALOG_CHANNELS + 1); channel++ )
@@ -173,12 +172,12 @@ uint8_t items;
 			if ( retS ) {
 				adc_samples[channel][items] = adcRetValue;
 				if ( systemVars.debugLevel == D_DATA ) {
-					FRTOS_snprintf( aIn_printfBuff,sizeof(aIn_printfBuff),"DATA: poll ch_%02d=%d\r\n\0", channel, adcRetValue );
+					FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: poll ch_%d=%d\r\n\0"), channel, adcRetValue );
 					FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 				}
 
 			} else {
-				FRTOS_snprintf( aIn_printfBuff,sizeof(aIn_printfBuff),"DATA: poll ERROR: ch_%02d\r\n\0", channel );
+				FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: poll ERROR: ch_%d\r\n\0"), channel );
 				FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 			}
 		}
@@ -194,7 +193,7 @@ uint8_t items;
 static void pv_analog_convert_raw_to_mag(void)
 {
 	// Convierte los valores del conversor A/D a magnitudes.
-	// Promedia, calcula la varianza para descartar outliners y vuelve
+	// Promedia, calcula la varianza para descartar outliers y vuelve
 	// a promediar con los valores dentro del rango permitido.
 	// Luego convierte a magnitud.
 
@@ -217,7 +216,7 @@ uint8_t count;
 		avg[channel] /= CICLOS_POLEO;
 		sigma[channel] = sqrt (sigma[channel] / CICLOS_POLEO -  ( avg[channel] * avg[channel] ));
 		if ( systemVars.debugLevel == D_DATA ) {
-			FRTOS_snprintf( aIn_printfBuff,CHAR128,"DATA :avg: AvgCh[%d]=%.02f, Sg=%.02f \r\n\0", channel, avg[channel], sigma[channel]);
+			FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: AvgCh[%d]=%.02f, Sg=%.02f\r\n\0"), channel, avg[channel], sigma[channel]);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
 	}
@@ -234,7 +233,7 @@ uint8_t count;
 		}
 		rAIn[channel] /= count;
 		if ( systemVars.debugLevel == D_DATA ) {
-			FRTOS_snprintf( aIn_printfBuff,CHAR128,"DATA :AvgOptimo[%d]=%.02f \r\n\0", channel, rAIn[channel]);
+			FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: AvgOptimo[%d]=%.02f \r\n\0"), channel, rAIn[channel]);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
 	}
@@ -252,7 +251,7 @@ uint8_t count;
 			M = ( systemVars.Mmax[channel]  -  systemVars.Mmin[channel] ) / D;
 			rAIn[channel] = systemVars.Mmin[channel] + M * ( I - systemVars.Imin[channel] );
 			if ( systemVars.debugLevel ==  D_DATA)  {
-				FRTOS_snprintf( aIn_printfBuff,CHAR128,"DATA:(ch %d) D=%d, M=%.3f, I=%.3f, Mag=%.02f\r\n\0",channel, D,M,I, rAIn[channel]);
+				FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: (ch %d) D=%d, M=%.3f, I=%.3f, Mag=%.02f\r\n\0"),channel, D,M,I, rAIn[channel]);
 				FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 			}
 		} else {
@@ -265,7 +264,7 @@ uint8_t count;
 	// Convierto la bateria.
 	rAIn[NRO_ANALOG_CHANNELS] = (15 * rAIn[NRO_ANALOG_CHANNELS]) / 4096;	// Bateria
 	if ( systemVars.debugLevel == D_DATA) {
-		FRTOS_snprintf( aIn_printfBuff,CHAR128,"DATA: batt=%.02f\r\n\0", rAIn[NRO_ANALOG_CHANNELS]);
+		FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: batt=%.02f\r\n\0"), rAIn[NRO_ANALOG_CHANNELS]);
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
 
@@ -274,6 +273,8 @@ uint8_t count;
 static bool pv_analog_save_frame_inBD(void)
 {
 
+	// Guardo el registo en la EE.
+
 size_t bytes_written;
 StatBuffer_t pxFFStatBuffer;
 
@@ -281,16 +282,17 @@ StatBuffer_t pxFFStatBuffer;
 	bytes_written = FF_fwrite( &pv_data_frame, sizeof(pv_data_frame));
 	FF_stat(&pxFFStatBuffer);
 
+	// Controlo errores de escritura.
 	if ( bytes_written != sizeof(pv_data_frame) ) {
 		// Error de escritura ??
-		FRTOS_snprintf( aIn_printfBuff,sizeof(aIn_printfBuff),"DATA: WR ERROR: (%d)\r\n\0",pxFFStatBuffer.errno);
+		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: WR ERROR: (%d)\r\n\0"),pxFFStatBuffer.errno);
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		return(false);
 
 	} else {
 
 		// Stats de memoria
-		FRTOS_snprintf( aIn_printfBuff, sizeof(aIn_printfBuff), "DATA: MEM [%d/%d/%d][%d/%d]--", pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
+		FRTOS_snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff), PSTR("DATA: MEM [%d/%d/%d][%d/%d]--"), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
 	return(true);
@@ -298,35 +300,35 @@ StatBuffer_t pxFFStatBuffer;
 //------------------------------------------------------------------------------------
 void pub_analog_print_frame(frameData_t *dframe)
 {
-	// Imprimo
+	// Muestro los datos.
 
 uint8_t channel;
 uint16_t pos = 0;
 
 	// HEADER
-	pos = FRTOS_snprintf( aIn_printfBuff, sizeof(aIn_printfBuff), "frame {" );
+	pos = FRTOS_snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff), PSTR("frame {" ));
 	// timeStamp.
-	pos += FRTOS_snprintf( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ),"%04d%02d%02d,",dframe->rtc.year,dframe->rtc.month,dframe->rtc.day );
-	pos += FRTOS_snprintf( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ),"%02d%02d%02d",dframe->rtc.hour,dframe->rtc.min, dframe->rtc.sec );
+	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ),PSTR("%04d%02d%02d,"),dframe->rtc.year,dframe->rtc.month,dframe->rtc.day );
+	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ),PSTR("%02d%02d%02d"),dframe->rtc.hour,dframe->rtc.min, dframe->rtc.sec );
 
 	// Valores analogicos
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
-		pos += FRTOS_snprintf( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), ",%s=%.02f",systemVars.aChName[channel],dframe->analogIn[channel] );
+		pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s=%.02f"),systemVars.aChName[channel],dframe->analogIn[channel] );
 	}
 
 	// Valores digitales
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		pos += FRTOS_snprintf( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), ",%s=%.02f", systemVars.dChName[channel],dframe->dIn.caudal[channel] );
+		pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s=%.02f"), systemVars.dChName[channel],dframe->dIn.caudal[channel] );
 	}
 
 	// Nivel digital del canal 0.
-	pos += FRTOS_snprintf( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), ",L0=%d", dframe->dIn.level0 );
+	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",L0=%d"), dframe->dIn.level0 );
 
 	// Bateria
-	pos += FRTOS_snprintf( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), ",bt=%.02f",dframe->batt );
+	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",bt=%.02f"),dframe->batt );
 
 	// TAIL
-	pos += FRTOS_snprintf( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), "}\r\n\0" );
+	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR("}\r\n\0") );
 
 	// Imprimo
 	FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
@@ -336,10 +338,12 @@ uint16_t pos = 0;
 static void pv_analog_prender_sensores(void)
 {
 
+	// Prendo los 12V de los sensores y los 3.6V del sistema analogco ( INA, ADC )
+
 	IO_sensor_pwr_on();
 	IO_analog_pwr_on();
 	if ( systemVars.debugLevel == D_DATA) {
-		FRTOS_snprintf( aIn_printfBuff,sizeof(aIn_printfBuff),"DATA: sensors On\r\n\0");
+		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: Sensors On\r\n\0"));
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
 
@@ -351,7 +355,7 @@ static void pv_analog_apagar_sensores(void)
 	IO_sensor_pwr_off();
 	IO_analog_pwr_off();
 	if ( systemVars.debugLevel == D_DATA) {
-		FRTOS_snprintf( aIn_printfBuff,sizeof(aIn_printfBuff),"DATA: sensors Off\r\n\0");
+		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: Sensors Off\r\n\0"));
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
 }
@@ -362,7 +366,7 @@ bool pub_analog_config_timerpoll(char *s_tPoll)
 {
 	// Configura el tiempo de poleo.
 	// El cambio puede ser desde tkCmd o tkGprs(init frame)
-	// Le avisa a la tarea tkAnalog del cambio
+	// Nunca puede ser menor a 15s.
 
 uint16_t tpoll;
 
@@ -373,6 +377,7 @@ uint16_t tpoll;
 		taskYIELD();
 
 	systemVars.timerPoll = tpoll;
+
 	xSemaphoreGive( sem_SYSVars );
 
 	return(true);
@@ -426,6 +431,8 @@ uint8_t channel;
 //------------------------------------------------------------------------------------
 frameData_t *pub_analog_get_data_frame_ptr(void)
 {
+	// Retorna el puntero a la estructura de datos local con el ultimo frame.
+	// Se usa para imprimir el frame en otras parte.
 	return(&pv_data_frame);
 }
 //------------------------------------------------------------------------------------

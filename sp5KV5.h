@@ -55,7 +55,7 @@
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
 #define SP5K_REV "5.1.2"
-#define SP5K_DATE "@ 20180425"
+#define SP5K_DATE "@ 20180428"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -94,7 +94,6 @@ void tkDigitalIn(void * pvParameters);
 void tkAnalogIn(void * pvParameters);
 void tkAnalogInit(void);
 void tkGprsTx(void * pvParameters);
-//void tkGprsInit(void);
 void tkOutputs(void * pvParameters);
 void tkGprsRx(void * pvParameters);
 
@@ -134,9 +133,7 @@ typedef enum { MODEM_PRENDER = 0, MODEM_APAGAR, TERM_PRENDER, TERM_APAGAR } t_ua
 #define PASSWD_LENGTH		15
 #define PARAMNAME_LENGTH	5
 
-#define TIMERDIAL_FOR_CONTINUO	600
-
-#define MODO_DISCRETO ( (systemVars.timerDial > TIMERDIAL_FOR_CONTINUO ) ? true : false )
+#define MODO_DISCRETO ( (systemVars.timerDial > 0 ) ? true : false )
 
 typedef struct {
 	uint8_t hour;
@@ -224,8 +221,6 @@ typedef struct {
 
 systemVarsType systemVars,tmpSV;
 
-uint32_t ticks;
-
 #define EEADDR_SV 32		// Direccion inicio de la EE de escritura del systemVars.
 
 //------------------------------------------------------------------------------------
@@ -234,11 +229,10 @@ uint32_t ticks;
 // utils
 void u_uarts_ctl(uint8_t cmd);
 void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
-bool u_saveSystemParams(void);
 bool u_loadSystemParams(void);
-void u_loadDefaults(void);
-void u_debugPrint(uint8_t debugCode, char *msg, uint16_t size);
 
+bool pub_saveSystemParams(void);
+void pub_loadDefaults(void);
 bool pub_configTimerDial(char *s_tDial);
 void pub_reset(void);
 void pub_convert_str_to_time_t ( char *time_str, time_t *time_struct );
@@ -264,6 +258,10 @@ bool pub_digital_config_channel( uint8_t channel, char *chName, char *s_magPP );
 // tkGprs
 int32_t u_readTimeToNextDial(void);
 bool u_modem_prendido(void);
+void pub_gprs_redial(void);
+void pub_gprs_flush_RX_buffer(void);
+void pub_gprs_print_RX_Buffer(void);
+
 
 // tkOutputs
 void pub_outputs_load_defaults(void);
@@ -274,15 +272,18 @@ void pub_output_set_outputs( char id_output, uint8_t value);
 
 char debug_printfBuff[CHAR64];
 
+void debug_test_printf(void);
+
 // WATCHDOG
 #define WDG_CTL			0
 #define WDG_CMD			1
 #define WDG_DIN			2
 #define WDG_OUT			3
 #define WDG_AIN			4
-//#define WDG_GPRS		5
-//#define WDG_GPRSRX	6
-#define NRO_WDGS		5
+#define WDG_GPRSRX		5
+#define WDG_GPRS		6
+
+#define NRO_WDGS		6
 
 //------------------------------------------------------------------------------------
 

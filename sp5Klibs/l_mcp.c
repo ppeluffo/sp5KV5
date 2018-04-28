@@ -371,12 +371,12 @@ static uint8_t modo = 0;
 	FreeRTOS_ioctl(&pdI2C,ioctlRELEASE_BUS_SEMPH, NULL, DEBUG_MCP);
 
 	if ( modo == 0 ) {
-		FreeRTOS_write( &pdUART1, "MCP1 init OK\r\n\0", sizeof("MCP1 init OK\r\n\0") );
+		FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("MCP1 init OK\r\n\0"));
 		modo = 1;
 	} else {
-		FRTOS_snprintf( debug_printfBuff,sizeof(debug_printfBuff),"MCP1 init !!\r\n\0");
-		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+		FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("MCP1 init !!\r\n\0"));
 	}
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 }
 //------------------------------------------------------------------------------------
 static void pvMCP_checkConfiguration(void)
@@ -391,7 +391,7 @@ uint8_t regValue;
 		// Deshabilito la interfase TWI. La proxima lectura la voy a habilitar y veremos
 		// si esto soluciona el problema.
 		TWCR &= ~(1 << TWEN);
-		FRTOS_snprintf( debug_printfBuff,sizeof(debug_printfBuff),"pvMCP I2C BUS ERROR !! Disable interface...\r\n\0");
+		FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("pvMCP I2C BUS ERROR !! Disable interface...\r\n\0"));
 		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 		return;
 	}
@@ -399,7 +399,7 @@ uint8_t regValue;
 	// El bus I2C anda bien y el problema esta en el ADC o en el MCP
 	if ( regValue != 0x64) {
 		// El MCP esta desconfigurado: Lo reprogramo
-		FRTOS_snprintf( debug_printfBuff,sizeof(debug_printfBuff),":pvMCP MCP ERROR !! Reconfigure...\r\n\0");
+		FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR(":pvMCP MCP ERROR !! Reconfigure...\r\n\0"));
 		FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 		pvMCP_init_MCP1();
 		taskYIELD();

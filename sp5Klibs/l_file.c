@@ -249,7 +249,7 @@ uint8_t bytes_writen = 0U;
 			break;
 
 		if  ( tryes == 3 ) {
-			FRTOS_snprintf( debug_printfBuff,sizeof(debug_printfBuff),"FS WR ERR\r\n\0");
+			FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("FS WR ERR\r\n\0"));
 			FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff));
 			FCB.ff_stat.errno = pdFF_ERRNO_MEMWR;
 			bytes_writen = 0U;
@@ -499,7 +499,7 @@ uint16_t eeAddress = 0;
 			if ( memcmp (&FCB.check_buffer, &FCB.ff_buffer, FF_RECD_SIZE) == 0 )
 				break;
 			if  ( tryes == 3 ) {
-				FRTOS_snprintf( debug_printfBuff,sizeof(debug_printfBuff),"FFrew ERR: %d,%d\r\n\0",rcd_nbr, eeAddress);
+				FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("FFrew ERR: %d,%d\r\n\0"),rcd_nbr, eeAddress);
 				FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff));
 			}
 

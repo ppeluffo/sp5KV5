@@ -10,7 +10,6 @@
 static char out_printfBuff[CHAR128];	// Buffer de impresion
 
 typedef enum { outESPERAR, outCHEQUEAR } t_outStates;
-uint16_t OUT_timer;
 
 static void pv_out_chequear(void);
 static void pv_out_check_consignas(void);
@@ -33,7 +32,7 @@ void tkOutputs(void * pvParameters)
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf( out_printfBuff,sizeof(out_printfBuff),"starting tkOutputs..\r\n\0");
+	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("starting tkOutputs..\r\n\0"));
 	FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
 
 	pv_out_init();
@@ -203,7 +202,7 @@ uint8_t consigna_a_aplicar = 99;
 	switch (consigna_a_aplicar) {
 	case 99:
 		// Incompatibilidad: seteo por default.
-		FRTOS_snprintf( out_printfBuff,sizeof(out_printfBuff),"OUTPUTS: INIT ERROR al setear consignas: horas incompatibles\r\n\0");
+		FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: INIT ERROR al setear consignas: horas incompatibles\r\n\0"));
 		systemVars.outputs.modo = OUT_CONSIGNA;
 		systemVars.outputs.consigna_diurna.hour = 05;
 		systemVars.outputs.consigna_diurna.min = 30;
@@ -295,7 +294,7 @@ void pub_output_set_consigna_diurna(void)
 	DRV8814_test_pulse("B", "-","100");
 
 	systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
-	FRTOS_snprintf( out_printfBuff,sizeof(out_printfBuff),"OUTPUTS: Aplico Consigna Diurna\r\n\0" );
+	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: Aplico Consigna Diurna\r\n\0" ));
 	FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
 }
 //----------------------------------------------------------------------------------------
@@ -307,7 +306,7 @@ void pub_output_set_consigna_nocturna(void)
 	DRV8814_test_pulse("B", "+","100");
 
 	systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
-	FRTOS_snprintf( out_printfBuff,sizeof(out_printfBuff),"OUTPUTS: Aplico Consigna Nocturna\r\n\0" );
+	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: Aplico Consigna Nocturna\r\n\0" ));
 	FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
 }
 //----------------------------------------------------------------------------------------
@@ -325,7 +324,7 @@ void pub_output_set_outputs( char id_output, uint8_t value)
 		break;
 	}
 
-	FRTOS_snprintf( out_printfBuff,sizeof(out_printfBuff),"OUTPUTS: Set out_%c=%d\r\n\0",id_output,value );
+	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),"OUTPUTS: Set out_%c=%d\r\n\0",id_output,value );
 	FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
 
 }

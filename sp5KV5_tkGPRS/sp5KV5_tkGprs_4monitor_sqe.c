@@ -8,7 +8,10 @@
 #include "sp5KV5_tkGprs.h"
 
 static void pv_read_sqe(void);
-static bool pv_procesar_signals_monsqe( void );
+
+// Estoy en modo comando por lo que no importa tanto el wdg.
+// Le doy 15 minutos
+#define WDG_GPRS_TO_SQE	900
 
 //------------------------------------------------------------------------------------
 bool gprs_monitor_sqe(void)
@@ -21,15 +24,11 @@ uint8_t MON_timer = 1;
 
 	GPRS_stateVars.state = G_MON_SQE;
 
+	pub_control_watchdog_kick(WDG_GPRS, WDG_GPRS_TO_SQE );
+
 	while ( systemVars.wrkMode == WK_MONITOR_SQE ) {
 
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-
-		// PROCESO LAS SEÑALES
-		if ( pv_procesar_signals_monsqe()) {
-			// Si recibi alguna senal, debo salir.
-			return( bool_RESTART );
-		}
 
 		if ( MON_timer > 0) {	// Espero 1s contando
 			MON_timer--;
@@ -46,22 +45,6 @@ uint8_t MON_timer = 1;
 	return( bool_CONTINUAR );
 }
 //------------------------------------------------------------------------------------
-static bool pv_procesar_signals_monsqe( void )
-{
-	// Estoy prendiendo el modem de modo que solo me interesa
-	// la senal de reload.
-	// Las otras en forma implicita las estoy atendiendo
-
-bool ret_f = false;
-
-EXIT:
-
-	GPRS_stateVars.signal_redial = false;
-	GPRS_stateVars.signal_frameReady = false;
-
-	return(ret_f);
-}
-//------------------------------------------------------------------------------------
 static void pv_read_sqe(void)
 {
 
@@ -69,13 +52,12 @@ char csqBuffer[32];
 char *ts = NULL;
 
 	// Query SQE
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT+CSQ\r\0", sizeof("AT+CSQ\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CSQ\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	vTaskDelay( (portTickType)( 500 / portTICK_RATE_MS ) );
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
 	memcpy(csqBuffer, FreeRTOS_UART_getFifoPtr(&pdUART0), sizeof(csqBuffer) );
 	if ( (ts = strchr(csqBuffer, ':')) ) {
@@ -83,8 +65,8 @@ char *ts = NULL;
 		systemVars.csq = atoi(ts);
 		systemVars.dbm = 113 - 2 * systemVars.csq;
 
-		if ( (systemVars.debugLevel &  ( D_BASIC + D_GPRS ) ) != 0) {
-			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: CSQ=%d,DBM=%d\r\n\0",systemVars.csq,systemVars.dbm );
+		if ( systemVars.debugLevel == D_GPRS ) {
+			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: CSQ=%d,DBM=%d\r\n\0"),systemVars.csq,systemVars.dbm );
 			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		}
 

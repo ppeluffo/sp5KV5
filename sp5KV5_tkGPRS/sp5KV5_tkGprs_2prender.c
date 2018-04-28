@@ -8,7 +8,9 @@
 #include "sp5KV5_tkGprs.h"
 
 static void pv_readImei(void);
-static bool pv_procesar_signals_prender( bool *exit_flag );
+
+// La tarea no puede demorar mas de 180s.
+#define WDG_GPRS_TO_PRENDER	180
 
 //------------------------------------------------------------------------------------
 bool gprs_prender(void)
@@ -22,6 +24,8 @@ bool exit_flag = bool_RESTART;
 
 // Entry:
 
+	pub_control_watchdog_kick(WDG_GPRS, WDG_GPRS_TO_PRENDER);
+
 	GPRS_stateVars.state = G_PRENDER;
 	u_uarts_ctl(MODEM_PRENDER);
 
@@ -30,7 +34,7 @@ bool exit_flag = bool_RESTART;
 	GPRS_stateVars.modem_prendido = true;
 	g_sleep(3);
 
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: prender.\r\n\0" );
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: prender.\r\n\0" ));
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	// Me aseguro que el modem este apagado
@@ -50,7 +54,7 @@ bool exit_flag = bool_RESTART;
 		for ( sw_tries = 0; sw_tries < MAX_SW_TRIES_PWRON; sw_tries++ ) {
 
 			if ( systemVars.debugLevel ==  D_GPRS ) {
-				FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: prender HW=%d,SW=%d\r\n\0", hw_tries, sw_tries);
+				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: prender HW=%d,SW=%d\r\n\0"), hw_tries, sw_tries);
 				FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 			}
 
@@ -66,19 +70,17 @@ bool exit_flag = bool_RESTART;
 			g_sleep(10);
 
 			// Envio un AT y espero un OK para confirmar que prendio.
-			FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-			FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
-			g_flushRXBuffer();
+			pub_gprs_flush_RX_buffer();
 			FreeRTOS_write( &pdUART0, "AT\r\0", sizeof("AT\r\0") );
 			g_sleep(1);
 
-			g_printRxBuffer();	// Muestro lo que recibi del modem ( en modo debug )
+			pub_gprs_print_RX_Buffer();	// Muestro lo que recibi del modem ( en modo debug )
 
 			// Leo y Evaluo la respuesta al comando AT
 			if ( strstr( gprsRx.buffer, "OK") != NULL ) {
 
 				if ( systemVars.debugLevel ==  D_GPRS ) {
-					FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: Modem prendido\r\n\0" );
+					FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Modem prendido\r\n\0" ));
 					FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 				}
 
@@ -88,14 +90,8 @@ bool exit_flag = bool_RESTART;
 
 			} else {
 
-				FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: Modem No prendio !!\r\n\0" );
+				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Modem No prendio !!\r\n\0" ));
 				FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-			}
-
-			// PROCESO LAS SEÑALES
-			if ( pv_procesar_signals_prender( &exit_flag )) {
-				// Si recibi alguna senal, debo salir.
-				goto EXIT;
 			}
 
 			// No prendio: Espero 5s antes de reintentar prenderlo por SW.
@@ -111,7 +107,7 @@ bool exit_flag = bool_RESTART;
 
 	// Si salgo por aqui es que el modem no prendio luego de todos los reintentos
 	exit_flag = bool_RESTART;
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: FAIL!! Modem No prendio en HW%d y SW%d intentos\r\n\0", MAX_HW_TRIES_PWRON, MAX_SW_TRIES_PWRON);
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: FAIL!! Modem No prendio en HW%d y SW%d intentos\r\n\0"), MAX_HW_TRIES_PWRON, MAX_SW_TRIES_PWRON);
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	// Exit:
@@ -127,22 +123,6 @@ EXIT:
 //------------------------------------------------------------------------------------
 // FUNCIONES PRIVADAS
 //------------------------------------------------------------------------------------
-static bool pv_procesar_signals_prender( bool *exit_flag )
-{
-	// Estoy prendiendo el modem de modo que solo me interesa
-	// la senal de reload.
-	// Las otras en forma implicita las estoy atendiendo
-
-bool ret_f = false;
-
-EXIT:
-
-	GPRS_stateVars.signal_redial = false;
-	GPRS_stateVars.signal_frameReady = false;
-
-	return(ret_f);
-}
-//------------------------------------------------------------------------------------
 static void pv_readImei(void)
 {
 	// Leo el imei del modem para poder trasmitirlo al server y asi
@@ -150,18 +130,16 @@ static void pv_readImei(void)
 
 uint8_t i,j,start, end;
 
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGSN\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
-
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT+CGSN\r\0", sizeof("AT+CGSN\r\0") );
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 
 	// Leo y Evaluo la respuesta al comando AT+CGSN
 	if ( strstr( gprsRx.buffer, "OK") != NULL ) {
 
-		g_printRxBuffer();
+		pub_gprs_print_RX_Buffer();
 
 		// Extraigoel IMEI del token. Voy a usar el buffer  de print ya que la respuesta
 		// puede ser grande.
@@ -195,7 +173,7 @@ uint8_t i,j,start, end;
 EXIT:
 
 	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: IMEI[%s]\r\n\0", buff_gprs_imei);
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: IMEI[%s]\r\n\0"), buff_gprs_imei);
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 

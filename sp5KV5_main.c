@@ -4,6 +4,9 @@
  * git remote add REM_SP5KV4 https://github.com/ppeluffo/sp5KV4.git
  * git push -u REM_SP5KV4 master
  *
+ * Para ver donde estan las variables en memoria y cuanto ocupan usamos
+ * avr-nm --defined-only --size-sort -S -td sp5KV5.elf | grep " B \| D "
+ *
  * WATCHDOG:
  * Para hacer un mejor seguimiento de las fallas, agrego a c/estado un nro.
  * Por otro lado, el WDG lo manejo en modo interrupcion / reset de modo que ante
@@ -168,6 +171,7 @@ unsigned int i,j;
 	wdgStatus.resetCause = mcusr_mirror;
 	// Genero un delay de 1s. para permitir que el micro se estabilize.
 	// Lleva tiempo a los osciladores estabilizarse.
+	// Podria quedarme leyendo el bit de estabilizacion de estos pero el loop funciona.
 	for (i=0; i<1000; i++)
 		for (j=0; j<1000; j++)
 				;
@@ -186,6 +190,7 @@ unsigned int i,j;
 
 	// Creo los semaforos
 	sem_SYSVars = xSemaphoreCreateMutex();
+	FRTOS_stdio_init();
 
 	// Inicializacion de modulos de las tareas que deben hacerce antes
 	// de arrancar el FRTOS
@@ -195,8 +200,8 @@ unsigned int i,j;
 	xTaskCreate(tkDigitalIn, "DIN", tkDigitalIn_STACK_SIZE, NULL, tkDigitalIn_TASK_PRIORITY,  &xHandle_tkDigitalIn);
 	xTaskCreate(tkControl, "CTL", tkControl_STACK_SIZE, NULL, tkControl_TASK_PRIORITY,  &xHandle_tkControl);
 	xTaskCreate(tkAnalogIn, "AIN", tkAIn_STACK_SIZE, NULL, tkAIn_TASK_PRIORITY,  &xHandle_tkAIn);
-	xTaskCreate(tkGprsTx, "GPRS", tkGprs_STACK_SIZE, NULL, tkGprs_TASK_PRIORITY,  &xHandle_tkGprs);
 	xTaskCreate(tkGprsRx, "GPRX", tkGprsRx_STACK_SIZE, NULL, tkGprsRx_TASK_PRIORITY,  &xHandle_tkGprsRx);
+//	xTaskCreate(tkGprsTx, "GPRS", tkGprs_STACK_SIZE, NULL, tkGprs_TASK_PRIORITY,  &xHandle_tkGprs);
 	xTaskCreate(tkOutputs, "OUTS", tkOutputs_STACK_SIZE, NULL, tkOutputs_TASK_PRIORITY,  &xHandle_tkOutputs);
 
 	/* Arranco el RTOS. */
@@ -223,11 +228,5 @@ void vApplicationIdleHook( void )
 			sleep_mode();
 		}
 	}
-}
-/*------------------------------------------------------------------------------------*/
-void vApplicationTickHook( void )
-{
-	// Para contar tiempo en forma exacta, llevo este contador de ticks.
-	ticks++;
 }
 /*------------------------------------------------------------------------------------*/

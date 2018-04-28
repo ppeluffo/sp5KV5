@@ -10,11 +10,9 @@
 
 static int32_t waiting_time;
 
-static bool pv_check_inside_pwrSave(void);
+static uint32_t pv_calcular_time_by_pwrSave(void);
 static void pv_calcular_tiempo_espera(void);
 static bool pv_procesar_signals_espera( bool *exit_flag );
-
-static bool starting_flag = true;
 
 //------------------------------------------------------------------------------------
 bool gprs_esperar_apagado(void)
@@ -30,7 +28,7 @@ bool exit_flag = false;
 	u_uarts_ctl(MODEM_APAGAR);
 
 	// Secuencia para apagar el modem y dejarlo en modo low power.
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: Apago modem\r\n\0");
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Apago modem\r\n\0"));
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	GPRS_stateVars.modem_prendido = false;
@@ -51,38 +49,23 @@ bool exit_flag = false;
 	vTaskDelay( (portTickType)( 2000 / portTICK_RATE_MS ) );
 	IO_modem_hw_pwr_on();
 
+	// Al calcular el tiempo de espera ya considero si caigo dentro del periodo
+	// de pwrSave. Con esto fijo el wdt y le doy 5 minutos mas.
 	pv_calcular_tiempo_espera();
 
+	pub_control_watchdog_kick(WDG_GPRS, ( waiting_time + 300));
+
 	// Espera
-	do {
-
-		// Espero 1s.
+	while( --waiting_time > 0 ) {
+		// Espero de a 1s.
 		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
-		waiting_time--;
 
-		// Analizo si termine el periodo y debo salir
-		if ( waiting_time == 0 ) {
-
-			// 1: Si estoy en un arranque salgo y listo.
-			if ( starting_flag == true ) {
-				starting_flag = false;
-				break;
-			} else {
-				// 2: Estoy dentro de pwrSave ? Espero 10 minutos mas.
-				if ( pv_check_inside_pwrSave() ) {
-					waiting_time = 600;
-				}
-			}
-		}
-
-		// PROCESO LAS SEÑALES
+		// Proceso las señales
 		if ( pv_procesar_signals_espera( &exit_flag )) {
 			// Si recibi alguna senal, debo salir.
 			goto EXIT;
 		}
-
-	} while (waiting_time > 0);
-
+	}
 	//
 	exit_flag = bool_CONTINUAR;
 
@@ -97,96 +80,103 @@ EXIT:
 static void pv_calcular_tiempo_espera(void)
 {
 
+static bool starting_flag = true;
+
 	// Cuando arranco ( la primera vez) solo espero 10s y disco por primera vez
 	if ( starting_flag ) {
 		waiting_time = 10;
-		return;
+		starting_flag = false;
+		goto EXIT;
 	}
 
-	// Calculo el tiempo que voy a tener que estar esperando
-	// NORMAL:
-	switch ( systemVars.wrkMode ) {
-	case WK_NORMAL:
-		if ( MODO_DISCRETO ) {
-			waiting_time = systemVars.timerDial;
-			// Controlo que nunca disque en menos de 10 minutos.
-			if ( waiting_time < 600 ) {
-				//systemVars.timerDial = 600;
-				waiting_time = 600;
-			}
-		} else {
-			waiting_time = 30;
-		}
-		break;
-
-	case WK_MONITOR_SQE:
-		// Debo prender cuanto antes ( 10s ) para ir a monitorear el sqe
-		waiting_time = 10;
-		break;
-
-	default:
-		waiting_time = 15;
-		break;
+	// En modo MONITOR_SQE espero solo 60s
+	if ( systemVars.wrkMode == WK_MONITOR_SQE ) {
+		waiting_time = 60;
+		goto EXIT;
 	}
+
+	// En modo CONTINUO ( timerDial = 0 ) espero solo 60s.
+	if ( ! MODO_DISCRETO ) {
+		waiting_time = 60;
+		goto EXIT;
+	}
+
+	// En modo DISCRETO ( timerDial > 900 ) calculo si al terminar caigo en pwrSave
+	// y determino el tiempo completo.
+	if ( MODO_DISCRETO ) {
+		waiting_time = pv_calcular_time_by_pwrSave();
+		goto EXIT;
+	}
+
+	// En cualquier otro caso no considerado, espero 60s
+	waiting_time = 60;
+	goto EXIT;
+
+EXIT:
 
 	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: await %lu s\r\n\0", waiting_time );
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: await %lu s\r\n\0"), waiting_time );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
 }
 //------------------------------------------------------------------------------------
-static bool pv_check_inside_pwrSave(void)
+static uint32_t pv_calcular_time_by_pwrSave(void)
 {
 	// Calculo el waiting time en modo DISCRETO evaluando si estoy dentro
 	// del periodo de pwrSave.
-	// En caso afirmativo, seteo el tiempo en 10mins ( 600s )
-	// En caso negativo, lo seteo en systemVars.timerDial
 
 RtcTimeType_t rtcDateTime;
-uint16_t now, pwr_save_start, pwr_save_end ;
+uint16_t now, next, pwr_save_start, pwr_save_end ;
 bool insidePwrSave_flag = false;
+uint32_t await_time;
 
 	// Estoy en modo PWR_DISCRETO con PWR SAVE ACTIVADO
 	if ( ( MODO_DISCRETO ) && ( systemVars.pwrSave.modo == modoPWRSAVE_ON )) {
 
+		// now, start, stop van de 0 a 1440.
 		RTC_read(&rtcDateTime);
 		now = rtcDateTime.hour * 60 + rtcDateTime.min;
+		next =  now + ( systemVars.timerDial * 60 );
 		pwr_save_start = systemVars.pwrSave.hora_start.hour * 60 + systemVars.pwrSave.hora_start.min;
 		pwr_save_end = systemVars.pwrSave.hora_fin.hour * 60 + systemVars.pwrSave.hora_fin.min;
 
 		if ( pwr_save_start < pwr_save_end ) {
 			// Caso A:
-			if ( now <= pwr_save_start ) { insidePwrSave_flag = false; goto EXIT; }
+			if ( ( next / 1440 ) <= pwr_save_start ) { insidePwrSave_flag = false; goto EXIT; }
 			// Caso B:
-			if ( ( pwr_save_start <= now ) && ( now <= pwr_save_end )) { insidePwrSave_flag = true; goto EXIT; }
+			if ( ( pwr_save_start <= ( next / 1440 ) ) && ( ( next / 1440 ) <= pwr_save_end )) { insidePwrSave_flag = true; goto EXIT; }
 			// Caso C:
-			if ( now > pwr_save_end ) { insidePwrSave_flag = false; goto EXIT; }
+			if ( ( next / 1440 ) > pwr_save_end ) { insidePwrSave_flag = false; goto EXIT; }
 		}
 
 		if (  pwr_save_end < pwr_save_start ) {
 			// Caso A:
-			if ( now <=  pwr_save_end ) { insidePwrSave_flag = true; goto EXIT; }
+			if ( ( next / 1440 ) <=  pwr_save_end ) { insidePwrSave_flag = true; goto EXIT; }
 			// Caso B:
-			if ( ( pwr_save_end <= now ) && ( now <= pwr_save_start )) { insidePwrSave_flag = false; goto EXIT; }
+			if ( ( pwr_save_end <= ( next / 1440 ) ) && ( ( next / 1440 ) <= pwr_save_start )) { insidePwrSave_flag = false; goto EXIT; }
 			// Caso C:
-			if ( now > pwr_save_start ) { insidePwrSave_flag = true; goto EXIT; }
+			if ( ( next / 1440 ) > pwr_save_start ) { insidePwrSave_flag = true; goto EXIT; }
 		}
-
-	}
 
 EXIT:
 
-	if ( systemVars.debugLevel == D_GPRS ) {
-		if ( insidePwrSave_flag == true ) {
-			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: wait inside pwrsave\r\n\0" );
-		} else {
-			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: wait out pwrsave\r\n\0" );
+		await_time = systemVars.timerDial;
+		if ( insidePwrSave_flag ) {
+			await_time += ( pwr_save_end - ( next / 1440 ) ) * 60;
 		}
-		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+
+	} else {
+		// PwrSave no Activado
+		await_time = systemVars.timerDial;
 	}
 
-	return(insidePwrSave_flag);
+	// Nunca espero mas de 12 hs para trasmitir
+	if ( await_time > 43200 ) {
+		await_time = 43200;
+	}
+
+	return(await_time);
 
 }
 //------------------------------------------------------------------------------------

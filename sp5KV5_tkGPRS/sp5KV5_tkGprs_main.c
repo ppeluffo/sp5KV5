@@ -7,6 +7,7 @@
 
 #include "sp5KV5_tkGprs.h"
 
+#define WDG_GPRSRX_TO	60
 //-------------------------------------------------------------------------------------
 void tkGprsTx(void * pvParameters)
 {
@@ -16,7 +17,7 @@ void tkGprsTx(void * pvParameters)
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"starting tkGprsTx..\r\n\0");
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("starting tkGprsTx..\r\n\0"));
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 
@@ -59,6 +60,7 @@ RESTART:
 
 	}
 }
+
 //------------------------------------------------------------------------------------
 void tkGprsRx(void * pvParameters)
 {
@@ -75,14 +77,16 @@ char c;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 200 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"starting tkGprsRX..\r\n\0");
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("starting tkGprsRX..\r\n\0"));
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
-	g_flushRXBuffer();
+	pub_gprs_flush_RX_buffer();
 
 	// loop
 	for( ;; )
 	{
+
+		pub_control_watchdog_kick( WDG_GPRSRX, WDG_GPRSRX_TO );
 
 		// Monitoreo las señales y solo prendo las flags correspondientes.
 		xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 10 / portTICK_RATE_MS ) );
@@ -90,7 +94,7 @@ char c;
 
 			if ( ( ulNotifiedValue & TK_REDIAL ) != 0 ) {
 				GPRS_stateVars.signal_redial = true;
-			} else if ( ( ulNotifiedValue & TK_FRAME_READY ) != 0 ) {  	// Mensaje de tilt desde tkControl.
+			} else if ( ( ulNotifiedValue & TK_FRAME_READY ) != 0 ) {
 				GPRS_stateVars.signal_frameReady = true;
 			}
 		}

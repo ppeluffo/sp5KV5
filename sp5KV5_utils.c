@@ -79,6 +79,10 @@ uint32_t tdial;
 		tdial = 0;
 	}
 
+	if ( tdial > 86400 ) {
+		tdial = 86400;
+	}
+
 	systemVars.timerDial = tdial;
 
 	return(true);
@@ -101,7 +105,7 @@ void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 
 }
 //----------------------------------------------------------------------------------------
-bool u_saveSystemParams(void)
+bool pub_saveSystemParams(void)
 {
 	// Salva el systemVars en la EE y verifica que halla quedado bien.
 	// Hago hasta 3 intentos.
@@ -149,9 +153,8 @@ uint8_t i;
 	systemVars.csq = 0;
 	systemVars.dbm = 0;
 	systemVars.ri = 0;
-	//systemVars.debugLevel = D_BASIC;
 	systemVars.wrkMode = WK_NORMAL;
-	systemVars.terminal_on = false;
+	systemVars.terminal_on = true;
 
 	// Cuando arranca si la EE no esta inicializada puede dar cualquier cosa.
 	// De este modo controlo el largo de los strings.
@@ -175,7 +178,7 @@ uint8_t i;
 
 }
 //------------------------------------------------------------------------------------
-void u_loadDefaults(void)
+void pub_loadDefaults(void)
 {
 
 // Configura el systemVars con valores por defecto.
@@ -200,7 +203,7 @@ void u_loadDefaults(void)
 	systemVars.roaming = false;
 
 	// DEBUG
-	systemVars.debugLevel = D_BASIC;
+	systemVars.debugLevel = D_NONE;
 
 	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),IP_LENGTH);
 	systemVars.timerDial = 1800;		// Transmito c/3 hs.
@@ -224,14 +227,6 @@ void u_loadDefaults(void)
 	xSemaphoreGive( sem_SYSVars );
 
 
-}
-//------------------------------------------------------------------------------------
-void u_debugPrint(uint8_t debugCode, char *msg, uint16_t size)
-{
-
-	if ( (systemVars.debugLevel & debugCode) != 0) {
-		FreeRTOS_write( &pdUART1, msg, size );
-	}
 }
 //------------------------------------------------------------------------------------
 void pub_reset(void)
@@ -296,3 +291,63 @@ uint8_t checksum=0;
 	return(checksum);
 }
 //------------------------------------------------------------------------------------
+void debug_test_printf(void)
+{
+	char *ptr = "Hello world!";
+	char *np = 0;
+	int i = 5;
+	unsigned int bs = sizeof(int)*8;
+	int mi;
+	char buf[80];
+
+	mi = (1 << (bs-1)) + 1;
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("%s\r\n"), ptr);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("printf test\r\n"));
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("%s is null pointer\r\n"), np);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("%d = 5\r\n"), i);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("%d = - max int\r\n"), mi);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("char %c = 'a'\r\n"), 'a');
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("hex %x = ff\r\n"), 0xff);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("hex %02x = 00\r\n"), 0);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("signed %d = unsigned %u = hex %x\r\n"), -3, -3, -3);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("%d %s(s)%\r\n"), 0, "message");
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR(" 3: %04d zero padded\r\n"), 3);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR(" 4: %-4d left justif.\n"), 3);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR(" 5: %4d right justif.\r\n"), 3);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("-6: %04d zero padded\r\n"), -3);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("-7: %-4d left justif.\r\n"), -3);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("-8: %4d right justif.\r\n"), -3);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+}

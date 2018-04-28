@@ -12,6 +12,9 @@ static bool pv_gprs_configurar_banda(void);
 static bool pv_gprs_net_attach(void);
 static void pv_gprs_ask_sqe(void);
 
+// La tarea no puede demorar mas de 180s.
+#define WDG_GPRS_TO_CONFIG	180
+
 //------------------------------------------------------------------------------------
 bool gprs_configurar(void)
 {
@@ -25,9 +28,11 @@ bool exit_flag = bool_RESTART;
 
 // Entry:
 
+	pub_control_watchdog_kick(WDG_GPRS, WDG_GPRS_TO_CONFIG );
+
 	GPRS_stateVars.state = G_CONFIGURAR;
 
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: config.\r\n\0" );
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: config.\r\n\0" ));
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 // Loop:
@@ -62,48 +67,48 @@ EXIT:
 static void pv_gprs_configurar_parametros(void)
 {
 
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT&D0&C1\r\0", sizeof("AT&D0&C1\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT&D0&C1\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
 	// Configuro la secuencia de escape +++AT
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT*E2IPS=2,8,2,1020,1,15\r\0", sizeof("AT*E2IPS=2,8,2,1020,1,15\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*E2IPS=2,8,2,1020,1,15\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
 	// SMS Envio: Los envio en modo texto
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT+CMGF=1\r\0", sizeof("AT+CMGF=1\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CMGF=1\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
 	// SMS Recepcion: No indico al TE ni le paso el mensaje
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT+CNMI=1,0\r\0", sizeof("AT+CNMI=1,0\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CNMI=1,0\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
 	// SMS indicacion: Bajando el RI por 100ms.
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT*E2SMSRI=100\r\0", sizeof("AT*E2SMSRI=100\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*E2SMSRI=100\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
 	// Deshabilito los mensajes SMS
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT*E2IPEV=0,0\r\0", sizeof("AT*E2IPEV=0,0\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*E2IPEV=0,0\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff)," GPRS: Modem Configurado\r\n\0");
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Modem Configurado\r\n\0"));
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 }
@@ -119,13 +124,12 @@ uint8_t modemBand;
 	// Vemos si la banda configurada es la correcta. Si no la reconfiguro.
 
 	// Leo la banda que tiene el modem configurada
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT*EBSE?\r\0", sizeof("AT*EBSE?\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*EBSE?\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	g_sleep(1);
 
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
 	// Extraigo de la respuesta la banda
 	memcpy(bandBuffer, FreeRTOS_UART_getFifoPtr(&pdUART0), sizeof(bandBuffer) );
@@ -134,7 +138,7 @@ uint8_t modemBand;
 	modemBand = atoi(ts);
 
 	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: config mBAND=%d,sBAND=%d\r\n\0", modemBand, systemVars.gsmBand);
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: config mBAND=%d,sBAND=%d\r\n\0"), modemBand, systemVars.gsmBand);
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -142,20 +146,18 @@ uint8_t modemBand;
 	if ( modemBand != systemVars.gsmBand ) {
 
 		// Reconfiguro.
-		FRTOS_snprintf( gprs_printfBuff,CHAR256,"AT*EBSE=%d\r\0",systemVars.gsmBand );
-		FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-		g_flushRXBuffer();
+		pub_gprs_flush_RX_buffer();
 		FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff));
 		vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 
 		// Guardo el profile
-		FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-		g_flushRXBuffer();
-		FreeRTOS_write( &pdUART0, "AT&W\r\0", sizeof("AT&W\r\0") );
+		pub_gprs_flush_RX_buffer();
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT&W\r\0"));
+		FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 
 		if ( systemVars.debugLevel == D_GPRS ) {
-			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: Reconfiguro GSM_BAND a modo %d:\r\n\0", systemVars.gsmBand);
+			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Reconfiguro GSM_BAND a modo %d:\r\n\0"), systemVars.gsmBand);
 			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		}
 
@@ -164,7 +166,7 @@ uint8_t modemBand;
 	}
 
 	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: Banda GRPS OK.\r\n\0" );
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Banda GRPS OK.\r\n\0") );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -182,17 +184,16 @@ uint8_t check_tryes;
 bool exit_flag = false;
 
 	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: NET ATTACH.\r\n\0" );
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET ATTACH.\r\n\0" ));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
 	while ( reintentos-- > 0 ) {
 
 		// Envio el comando
-		FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-		FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
-		g_flushRXBuffer();
-		FreeRTOS_write( &pdUART0, "AT+CREG?\r\0", sizeof("AT+CREG?\r\0") );
+		pub_gprs_flush_RX_buffer();
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CREG?\r\0"));
+		FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 		g_sleep(5);	// Espero 5s por la respuesta.
 
@@ -202,10 +203,10 @@ bool exit_flag = false;
 			// Leo y Evaluo la respuesta al comando AT+CREG?
 			// Sin roaming
 			if ( strstr( gprsRx.buffer, "+CREG: 0,1") != NULL ) {
-				g_printRxBuffer();
+				pub_gprs_print_RX_Buffer();
 				// LOG & DEBUG
 				if ( systemVars.debugLevel == D_GPRS ) {
-					FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: NET OK.\r\n\0" );
+					FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET OK.\r\n\0" ));
 					FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 				}
 				exit_flag = true;
@@ -214,10 +215,10 @@ bool exit_flag = false;
 
 			//( roaming !!!. Se usa en Concordia )
 			if ( strstr( gprsRx.buffer, "+CREG: 0,5") != NULL ) {
-				g_printRxBuffer();
+				pub_gprs_print_RX_Buffer();
 				// LOG & DEBUG
-				if ( (systemVars.debugLevel & ( D_BASIC + D_GPRS) ) != 0) {
-					FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: NET OK(roaming).\r\n\0" );
+				if ( systemVars.debugLevel == D_GPRS) {
+					FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET OK(roaming).\r\n\0" ));
 					FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 				}
 				exit_flag = true;
@@ -230,7 +231,7 @@ bool exit_flag = false;
 	}
 
 	// Luego de varios reintentos no pude conectarme a la red.
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: NET FAIL !!.\r\n\0" );
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET FAIL !!.\r\n\0" ));
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	exit_flag = false;
 
@@ -249,13 +250,12 @@ char csqBuffer[32];
 char *ts = NULL;
 
 	// Query SQE
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
-	g_flushRXBuffer();
-	FreeRTOS_write( &pdUART0, "AT+CSQ\r\0", sizeof("AT+CSQ\r\0") );
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CSQ\r\0"));
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	vTaskDelay( (portTickType)( 500 / portTICK_RATE_MS ) );
-	g_printRxBuffer();
+	pub_gprs_print_RX_Buffer();
 
 	memcpy(csqBuffer, FreeRTOS_UART_getFifoPtr(&pdUART0), sizeof(csqBuffer) );
 	if ( (ts = strchr(csqBuffer, ':')) ) {
@@ -265,7 +265,7 @@ char *ts = NULL;
 	}
 
 	// LOG & DEBUG
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: signalQ CSQ=%d,DBM=%d\r\n\0",systemVars.csq,systemVars.dbm );
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: signalQ CSQ=%d,DBM=%d\r\n\0"),systemVars.csq,systemVars.dbm );
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 }

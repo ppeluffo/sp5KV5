@@ -9,14 +9,6 @@
 #include "sp5KV5_tkGprs.h"
 
 //------------------------------------------------------------------------------------
-void g_flushRXBuffer(void)
-{
-//	g_setModemResponse(MRSP_NONE);
-	memset(gprsRx.buffer,0, UART0_RXBUFFER_LEN );
-	gprsRx.ptr = 0;
-
-}
-//------------------------------------------------------------------------------------
 bool u_modem_prendido(void)
 {
 	return ( GPRS_stateVars.modem_prendido );
@@ -28,23 +20,6 @@ char *g_getImei(void)
 	return(buff_gprs_imei);
 }
 //--------------------------------------------------------------------------------------
-void g_printRxBuffer(void)
-{
-
-	// Imprime la respuesta a un comando.
-	// Utiliza el buffer de RX.
-
-	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS::rxbuff: \r\n\0");
-		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-
-		// Imprimo todo el buffer de RX ( 640b). Sale por \0.
-		FreeRTOS_write( &pdUART1, gprsRx.buffer, UART0_RXBUFFER_LEN );
-		// Agrego un CRLF por las dudas
-		FreeRTOS_write( &pdUART1, "\r\n\0", sizeof("\r\n\0") );
-	}
-}
-//------------------------------------------------------------------------------------
 void g_sleep(uint16_t timeout)
 {
 	// Genero una espera contando de a 1 segundo
@@ -64,15 +39,13 @@ uint8_t tries;
 bool exit_flag = false;
 
 	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: sock opening\r\n\0" );
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: sock opening\r\n\0" ));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
-	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
-	g_flushRXBuffer();
+	pub_gprs_flush_RX_buffer();
 
-	FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"AT*E2IPO=1,\"%s\",%s\r\n\0",systemVars.server_ip_address,systemVars.server_tcp_port);
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*E2IPO=1,\"%s\",%s\r\n\0"),systemVars.server_ip_address,systemVars.server_tcp_port);
 	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	// Espero hasta 10s que abra
@@ -105,7 +78,7 @@ bool exit_flag = false;
 	if ( ( GPRS_stateVars.modem_prendido == true ) && (pin_dcd == 0 ) ){
 
 		if ( systemVars.debugLevel == D_GPRS ) {
-			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: sock OPEN\r\n\0" );
+			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: sock OPEN\r\n\0" ));
 			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		}
 		exit_flag = true;
@@ -113,7 +86,7 @@ bool exit_flag = false;
 	} else {
 
 		if ( systemVars.debugLevel == D_GPRS ) {
-			FRTOS_snprintf( gprs_printfBuff,sizeof(gprs_printfBuff),"GPRS: sock CLOSED\r\n\0" );
+			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: sock CLOSED\r\n\0") );
 			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		}
 
@@ -131,8 +104,40 @@ void g_print_debug_gprs_header(const char *msg)
 
 char printfBuff[CHAR64];
 
-	FRTOS_snprintf( printfBuff,sizeof(printfBuff),"%s", msg );
+	FRTOS_snprintf_P( printfBuff,sizeof(printfBuff),PSTR("%s"), msg );
 	FreeRTOS_write( &pdUART1, printfBuff, sizeof(printfBuff) );
+
+}
+//------------------------------------------------------------------------------------
+void pub_gprs_redial(void)
+{
+	GPRS_stateVars.signal_redial = true;
+
+}
+//----------------------------------------------------------------------------------------
+void pub_gprs_flush_RX_buffer(void)
+{
+
+	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_RX_BUFFER, NULL, false);
+	FreeRTOS_ioctl( &pdUART0,ioctl_UART_CLEAR_TX_BUFFER, NULL, false);
+
+	memset(gprsRx.buffer,0, UART0_RXBUFFER_LEN );
+	gprsRx.ptr = 0;
+
+}
+//------------------------------------------------------------------------------------
+void pub_gprs_print_RX_Buffer(void)
+{
+
+	// Imprime la respuesta a un comando.
+	// Utiliza el buffer de RX.
+
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: rxbuff: \r\n\0"));
+	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	// Imprimo todo el buffer de RX ( 640b). Sale por \0.
+	FreeRTOS_write( &pdUART1, gprsRx.buffer, UART0_RXBUFFER_LEN );
+	// Agrego un CRLF por las dudas
+	FreeRTOS_write( &pdUART1, "\r\n\0", sizeof("\r\n\0") );
 
 }
 //------------------------------------------------------------------------------------

@@ -51,7 +51,7 @@ uint8_t i;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf( dIn_printfBuff,sizeof(dIn_printfBuff),"starting tkDigitalIn..\r\n\0");
+	FRTOS_snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("starting tkDigitalIn..\r\n\0"));
 	FreeRTOS_write( &pdUART1, dIn_printfBuff, sizeof(dIn_printfBuff) );
 
 	// Inicializo los latches borrandolos
@@ -68,7 +68,8 @@ uint8_t i;
 
 		pub_control_watchdog_kick(WDG_DIN, WDG_DIN_TIMEOUT);
 
-		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+		// Cada 200 ms leo las entradas digitales. fmax=5Hz
+		vTaskDelay( ( TickType_t)( 200 / portTICK_RATE_MS ) );
 
 		// Poleo las entradas
 		pv_pollQ();
@@ -94,13 +95,13 @@ bool retS;
 		debugQ |= pv_procesar_pulso(0);
 		debugQ |= pv_procesar_pulso(1);
 	} else {
-		FRTOS_snprintf( dIn_printfBuff,sizeof(dIn_printfBuff),"DIGITAL: poll READ DIN ERROR !!\r\n\0");
+		FRTOS_snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("DIGITAL: poll READ DIN ERROR !!\r\n\0"));
 		FreeRTOS_write( &pdUART1, dIn_printfBuff, sizeof(dIn_printfBuff) );
 		goto quit;
 	}
 
 	if ( (systemVars.debugLevel == D_DIGITAL) && debugQ ) {
-		FRTOS_snprintf( dIn_printfBuff,sizeof(dIn_printfBuff),"DIGITAL: poll {p0=%d,p1=%d}\r\n\0",pv_Qdata.pulse_count[0], pv_Qdata.pulse_count[1] );
+		FRTOS_snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),"DIGITAL: poll {p0=%d,p1=%d}\r\n\0",pv_Qdata.pulse_count[0], pv_Qdata.pulse_count[1] );
 		FreeRTOS_write( &pdUART1, dIn_printfBuff, sizeof(dIn_printfBuff) );
 	}
 
@@ -129,7 +130,7 @@ static void pv_clearQ(void)
 //------------------------------------------------------------------------------------
 bool pv_procesar_pulso(uint8_t channel)
 {
-	// Si detecte un flanco ( pulso) incremento el contador de pulsos y el tiempo entre pulsos
+	// Si detecte un flanco ( pulso) incremento el contador de pulsos.
 	// En este caso retorno true para luego mostrar los debugs.
 	// Si no detecte un flanco retorno false porque no tengo nada que mostrar.
 
@@ -146,22 +147,20 @@ bool pv_procesar_pulso(uint8_t channel)
 //------------------------------------------------------------------------------------
 static void pv_procesar_caudales(uint8_t channel)
 {
-	// Llego una senal de tkAnalog que expiro el timerPoll por lo que se deben
-	// hacer los calculos de caudal para el intervalo dado.
+	// Cuando tkAnalog lee los caudales invoca a pub_digital_read_counters().
+	// Esta funcion convierte los pulsos a caudal usando esta funcion.
 
-float Q_x_pulsos;
+float Q_x_pulsos = 0.0;
 
 	// Caudal por pulsos.
-	Q_x_pulsos = 0.0;
 	if ( systemVars.timerPoll != 0 ) {
 		Q_x_pulsos = pv_Qdata.pulse_count[channel] * systemVars.magPP[0] * 3600 / systemVars.timerPoll;
 	}
 
 	// Veo cual caudal usar
-	pv_Qdata.caudal[channel] = 0;
 	pv_Qdata.caudal[channel] = Q_x_pulsos;
 
-	// Reseteo los contadores.
+	// Reseteo el contador de pulsos del canal para el proximo intervalo.
 	pv_Qdata.pulse_count[channel] = 0;
 
 }

@@ -57,7 +57,6 @@ bool gprs_init_frame(void);
 bool gprs_data(void);
 
 void g_flushRXBuffer(void);
-void g_printRxBuffer(void);
 void g_sleep(uint16_t timeout);
 char *g_getImei(void);
 
