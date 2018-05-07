@@ -39,7 +39,7 @@ struct {
 } pv_Qdata;
 
 // La tarea pasa por el mismo lugar c/100ms.
-#define WDG_DIN_TIMEOUT	3
+#define WDG_DIN_TIMEOUT	10
 
 //------------------------------------------------------------------------------------
 void tkDigitalIn(void * pvParameters)
@@ -101,7 +101,7 @@ bool retS;
 	}
 
 	if ( (systemVars.debugLevel == D_DIGITAL) && debugQ ) {
-		FRTOS_snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),"DIGITAL: poll {p0=%d,p1=%d}\r\n\0",pv_Qdata.pulse_count[0], pv_Qdata.pulse_count[1] );
+		FRTOS_snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("DIGITAL: poll {p0=%d,p1=%d}\r\n\0"),pv_Qdata.pulse_count[0], pv_Qdata.pulse_count[1] );
 		FreeRTOS_write( &pdUART1, dIn_printfBuff, sizeof(dIn_printfBuff) );
 	}
 
@@ -150,15 +150,21 @@ static void pv_procesar_caudales(uint8_t channel)
 	// Cuando tkAnalog lee los caudales invoca a pub_digital_read_counters().
 	// Esta funcion convierte los pulsos a caudal usando esta funcion.
 
-float Q_x_pulsos = 0.0;
+float caudal = 0.0;
 
 	// Caudal por pulsos.
 	if ( systemVars.timerPoll != 0 ) {
-		Q_x_pulsos = pv_Qdata.pulse_count[channel] * systemVars.magPP[0] * 3600 / systemVars.timerPoll;
+		caudal = pv_Qdata.pulse_count[channel] * systemVars.magPP[channel] * 3600 / systemVars.timerPoll;
 	}
 
-	// Veo cual caudal usar
-	pv_Qdata.caudal[channel] = Q_x_pulsos;
+	pv_Qdata.caudal[channel] = caudal;
+
+	/*
+	if ( systemVars.debugLevel == D_DIGITAL)  {
+		FRTOS_snprintf_P( dIn_printfBuff,sizeof(dIn_printfBuff),PSTR("DIGITAL: ch%d, pulsos=%d, factor=%.02f, caudal=%.02f\r\n\0"),channel, pv_Qdata.pulse_count[channel], systemVars.magPP[channel], caudal );
+		FreeRTOS_write( &pdUART1, dIn_printfBuff, sizeof(dIn_printfBuff) );
+	}
+	*/
 
 	// Reseteo el contador de pulsos del canal para el proximo intervalo.
 	pv_Qdata.pulse_count[channel] = 0;
@@ -207,7 +213,6 @@ bool pub_digital_config_channel( uint8_t channel, char *chName, char *s_magPP )
 //----------------------------------------------------------------------------------------
 void pub_digital_load_defaults(void)
 {
-
 	// Realiza la configuracion por defecto de los canales digitales.
 	strncpy_P(systemVars.dChName[0], PSTR("v0\0"),3);
 	systemVars.magPP[0] = 0.1;

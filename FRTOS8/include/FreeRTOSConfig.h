@@ -90,13 +90,18 @@
 #define configCPU_CLOCK_HZ			( ( unsigned long ) 8000000 )
 #define configTICK_RATE_HZ			( ( TickType_t ) 100 )
 #define configMAX_PRIORITIES		( 4 )
-#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 85 )
+// Es importante el tamanio del idle stack ya que sino es quien genera
+// colgadas inexplicables.
+#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 400 )
 #define configTOTAL_HEAP_SIZE		( (size_t ) ( 10000 ) )
 #define configMAX_TASK_NAME_LEN		( 8 )
 #define configUSE_TRACE_FACILITY	0
 #define configUSE_16_BIT_TICKS		0
 #define configIDLE_SHOULD_YIELD		1
 #define configQUEUE_REGISTRY_SIZE	0
+
+// Lo uso en debug para ver cual tarea se escapa del stack y cuelga al micro.
+//#define configCHECK_FOR_STACK_OVERFLOW          2
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 		0
@@ -112,6 +117,10 @@ to exclude the API function. */
 #define INCLUDE_vTaskSuspend			1
 #define INCLUDE_vTaskDelayUntil			1
 #define INCLUDE_vTaskDelay				1
+
+// Lo necesito para debug que me indica como andan c/stack
+#define INCLUDE_uxTaskGetStackHighWaterMark     1
+#define INCLUDE_xTaskGetIdleTaskHandle          1
 
 #define configUSE_TASK_NOTIFICATIONS    1
 #define configUSE_MUTEXES               1

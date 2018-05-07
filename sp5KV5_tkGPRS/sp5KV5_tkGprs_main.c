@@ -27,7 +27,6 @@ void tkGprsTx(void * pvParameters)
 	{
 
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-
 RESTART:
 
 		if ( gprs_esperar_apagado() != bool_CONTINUAR ) {	// Espero con el modem apagado
@@ -57,7 +56,6 @@ RESTART:
 		if ( gprs_data() != bool_CONTINUAR ) {		// Trasmito datos si hay. En modo DISCRETO termino y vuelvo a apagarme y esperar
 			goto RESTART;							// En modo CONTINUO me quedo en esperando datos y trasmitiendo
 		}
-
 	}
 }
 
@@ -67,12 +65,10 @@ void tkGprsRx(void * pvParameters)
 	// Esta tarea lee y procesa las respuestas del GPRS. Lee c/caracter recibido y lo va
 	// metiendo en un buffer circular
 
-
 ( void ) pvParameters;
 BaseType_t xResult;
 uint32_t ulNotifiedValue;
 char c;
-
 
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 200 / portTICK_RATE_MS ) );
@@ -90,6 +86,7 @@ char c;
 
 		// Monitoreo las señales y solo prendo las flags correspondientes.
 		xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 10 / portTICK_RATE_MS ) );
+
 		if ( xResult == pdTRUE ) {
 
 			if ( ( ulNotifiedValue & TK_REDIAL ) != 0 ) {
@@ -105,28 +102,6 @@ char c;
 			// Avanzo en modo circular
 			gprsRx.ptr = ( gprsRx.ptr  + 1 ) % ( UART0_RXBUFFER_LEN );
 
-			// Los comandos vienen terminados en CR
-/*			if (c == '\r') {
-
-				if ( strstr( gprsRx.buffer, "OK") != NULL ) {
-					FreeRTOS_write( &pdUART1, "DEBUG ** MRSP_OK\r\n\0", sizeof("DEBUG ** MRSP_OK\r\n\0") );
-					// No podemos asumir que el socket este cerrado ya que en las respuestas HTTP puede venir
-					// un OK\r.
-				}
-
-				if ( strstr( gprsRx.buffer, "ERROR") != NULL ) {
-					FreeRTOS_write( &pdUART1, "DEBUG ** MRSP_ERROR\r\n\0", sizeof("DEBUG ** MRSP_ERROR\r\n\0") );
-				}
-
-				if ( strstr( gprsRx.buffer, "CONNECT") != NULL ) {
-					FreeRTOS_write( &pdUART1, "DEBUG ** MRSP_CONNECT\r\n\0", sizeof("DEBUG ** MRSP_CONNECT\r\n\0") );
-				}
-
-				if ( strstr( gprsRx.buffer, "NO CARRIER") != NULL ) {
-					FreeRTOS_write( &pdUART1, "DEBUG ** MRSP_NO CARRIER\r\n\0", sizeof("DEBUG ** MRSP_NO CARRIER\r\n\0") );
-				}
-			}
-*/
 		}
 	}
 }

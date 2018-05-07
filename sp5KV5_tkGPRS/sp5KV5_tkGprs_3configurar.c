@@ -37,9 +37,6 @@ bool exit_flag = bool_RESTART;
 
 // Loop:
 
-	// PROCESO LAS SEÑALES
-	// No hay loops: no las proceso
-
 	pv_gprs_configurar_parametros();		// Configuro parametros operativos.
 
 	if ( ! pv_gprs_configurar_banda() ) {	// Consiguro la banda: Si necesito resetearme
@@ -127,7 +124,7 @@ uint8_t modemBand;
 	pub_gprs_flush_RX_buffer();
 	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*EBSE?\r\0"));
 	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
-	g_sleep(1);
+	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 
 	pub_gprs_print_RX_Buffer();
 
@@ -195,7 +192,7 @@ bool exit_flag = false;
 		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CREG?\r\0"));
 		FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
-		g_sleep(5);	// Espero 5s por la respuesta.
+		vTaskDelay( (portTickType)( 5000 / portTICK_RATE_MS ) );	// Espero 5s por la respuesta.
 
 		// Chequeo la respuesta en modo persistente c/2s
 		check_tryes = 5;
@@ -224,7 +221,7 @@ bool exit_flag = false;
 				exit_flag = true;
 				goto EXIT;			}
 
-			g_sleep(2);	// Espero 2s mas por la respuesta
+			vTaskDelay( (portTickType)( 2000 / portTICK_RATE_MS ) );	// Espero 2s mas por la respuesta
 		}
 
 		// No pude atachearme. Debo mandar de nuevo el comando

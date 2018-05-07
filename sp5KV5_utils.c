@@ -26,7 +26,7 @@ uint16_t time_num;
 
 }
 //----------------------------------------------------------------------------------------
-void u_uarts_ctl(uint8_t cmd)
+void pub_uarts_ctl(uint8_t cmd)
 {
 
 static bool terminal_prendida = false;
@@ -62,7 +62,6 @@ static bool modem_prendido = false;
 			sbi(UARTCTL_PORT, UARTCTL);	// Deshabilito el LM365
 		}
 		break;
-		break;
 	}
 
 }
@@ -88,7 +87,7 @@ uint32_t tdial;
 	return(true);
 }
 //----------------------------------------------------------------------------------------
-void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
+void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 {
 	// Recibe como parametros el modo ( 0,1) y punteros a string con las horas de inicio y fin del pwrsave
 	// expresadas en minutos.
@@ -135,7 +134,7 @@ uint8_t i;
 
 }
 //------------------------------------------------------------------------------------
-bool u_loadSystemParams(void)
+bool pub_loadSystemParams(void)
 {
 bool retS = false;
 uint8_t i;
@@ -153,8 +152,7 @@ uint8_t i;
 	systemVars.csq = 0;
 	systemVars.dbm = 0;
 	systemVars.ri = 0;
-	systemVars.wrkMode = WK_NORMAL;
-	systemVars.terminal_on = true;
+	systemVars.terminal_on = false;
 
 	// Cuando arranca si la EE no esta inicializada puede dar cualquier cosa.
 	// De este modo controlo el largo de los strings.
@@ -183,9 +181,6 @@ void pub_loadDefaults(void)
 
 // Configura el systemVars con valores por defecto.
 
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
-		taskYIELD();
-
 	systemVars.initByte = 0x49;
 	strncpy_P(systemVars.dlgId, PSTR("DEF400\0"),DLGID_LENGTH);
 	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
@@ -196,7 +191,6 @@ void pub_loadDefaults(void)
 	systemVars.dbm = 0;
 	systemVars.gsmBand = 8;
 	systemVars.ri = 0;
-	systemVars.wrkMode = WK_NORMAL;
 	systemVars.terminal_on = false;
 
 	strncpy_P(systemVars.apn, PSTR("SPYMOVIL.VPNANTEL\0"),APN_LENGTH);
@@ -223,8 +217,6 @@ void pub_loadDefaults(void)
 	systemVars.pwrSave.hora_start.min = 30;
 	systemVars.pwrSave.hora_fin.hour = 5;
 	systemVars.pwrSave.hora_fin.min = 30;
-
-	xSemaphoreGive( sem_SYSVars );
 
 
 }
@@ -351,3 +343,16 @@ void debug_test_printf(void)
 	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 
 }
+//------------------------------------------------------------------------------------
+void debug_print_self_stack_watermark(uint8_t trace)
+{
+
+UBaseType_t uxHighWaterMark;
+
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("GTX: wtm(%d)=%d\r\n\0"),trace,uxHighWaterMark);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
+}
+//------------------------------------------------------------------------------------
+

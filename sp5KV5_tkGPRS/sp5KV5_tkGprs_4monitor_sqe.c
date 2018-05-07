@@ -11,6 +11,7 @@ static void pv_read_sqe(void);
 
 // Estoy en modo comando por lo que no importa tanto el wdg.
 // Le doy 15 minutos
+
 #define WDG_GPRS_TO_SQE	900
 
 //------------------------------------------------------------------------------------
@@ -21,14 +22,13 @@ bool gprs_monitor_sqe(void)
 
 uint8_t MON_timer = 1;
 
-
 	GPRS_stateVars.state = G_MON_SQE;
 
 	pub_control_watchdog_kick(WDG_GPRS, WDG_GPRS_TO_SQE );
 
-	while ( systemVars.wrkMode == WK_MONITOR_SQE ) {
+	while ( GPRS_stateVars.monitor_sqe ) {
 
-		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+		vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 
 		if ( MON_timer > 0) {	// Espero 1s contando
 			MON_timer--;
@@ -39,7 +39,6 @@ uint8_t MON_timer = 1;
 		}
 
 	}
-
 
 	// No estoy en modo mon_sqe: permite salir y continuar el flujo
 	return( bool_CONTINUAR );

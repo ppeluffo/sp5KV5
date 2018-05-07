@@ -62,7 +62,6 @@ bool exit_flag = false;
 		// Si por algun problema no puedo trasmitir, salgo asi me apago y reinicio.
 		// Si pude trasmitir o simplemente no hay datos, en modo continuo retorno TRUE.
 
-
 		pub_control_watchdog_kick(WDG_GPRS, WDG_GPRS_TO_DATA );
 
 		if ( pv_hay_datos_para_trasmitir() ) {			// Si hay datos, intento trasmitir
@@ -119,7 +118,6 @@ static bool pv_hay_datos_para_trasmitir(void)
 
 StatBuffer_t pxFFStatBuffer;
 bool exit_flag;
-uint16_t pos = 0;
 
 	FF_stat(&pxFFStatBuffer);
 
@@ -140,13 +138,8 @@ uint16_t pos = 0;
 		exit_flag = true;
 	}
 
-	if ( systemVars.debugLevel == D_GPRS ) {
-		pos = FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: [wrPtr=%d,rdPtr=%d,delPtr=%d][Free=%d,4del=%d]"), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
-		if ( exit_flag == false ) {
-			pos += FRTOS_snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ), PSTR(" EMPTY\r\n\0"));
-		} else {
-			pos += FRTOS_snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0"));
-		}
+	if ( ( exit_flag == false ) && ( systemVars.debugLevel == D_GPRS ) ){
+		FRTOS_snprintf_P( gprs_printfBuff, sizeof(gprs_printfBuff), PSTR("GPRS: bd EMPTY\r\n\0"));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
@@ -229,10 +222,14 @@ uint16_t pos;
 
 	// DebugMsg
 	if ( systemVars.debugLevel == D_GPRS ) {
-		g_print_debug_gprs_header("GPRS: data");
+		pub_gprs_print_header("GPRS: sent> ");
 		FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0"));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
+
+	// Para darle tiempo a vaciar el buffer y que no se corten los datos que se estan trasmitiendo
+	// por sobreescribir el gprs_printBuff.
+	vTaskDelay( (portTickType)( 500 / portTICK_RATE_MS ) );
 
 }
 //------------------------------------------------------------------------------------
@@ -255,12 +252,17 @@ uint16_t pos = 0;
 
 	// DebugMsg
 	if ( systemVars.debugLevel == D_GPRS ) {
-		g_print_debug_gprs_header("GPRS: data:");
+		pub_gprs_print_header("GPRS: sent>  ");
 		FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0"));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: data Frame enviado\r\n\0"));
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+
 	}
+
+	// Para darle tiempo a vaciar el buffer y que no se corten los datos que se estan trasmitiendo
+	// por sobreescribir el gprs_printBuff.
+	vTaskDelay( (portTickType)( 500 / portTICK_RATE_MS ) );
 
 }
 //------------------------------------------------------------------------------------
@@ -305,22 +307,25 @@ StatBuffer_t pxFFStatBuffer;
 
 	// Paso 3: Trasmito por el modem.
 	pub_gprs_flush_RX_buffer();
-	FreeRTOS_write( &pdUART0, gprs_printfBuff, pos );
+	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
+
+	// Para darle tiempo a vaciar el buffer y que no se corten los datos que se estan trasmitiendo
+	// por sobreescribir el gprs_printBuff.
+	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
 
 	// Paso 4: Log
+	pub_gprs_print_header("GPRS: sent> ");
 	if ( systemVars.debugLevel == D_GPRS ) {
-		g_print_debug_gprs_header("GPRS: data:");
-		FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0"));
-		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-
-		// Agrego mem.stats
-		if (pxFFStatBuffer.errno > 0 ) {
-			FRTOS_snprintf_P( gprs_printfBuff,  sizeof(gprs_printfBuff), PSTR("GPRS: data ERROR (%d) MEM[%d/%d/%d][%d/%d]\r\n\0") , pxFFStatBuffer.errno, pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
-		} else {
-			FRTOS_snprintf_P( gprs_printfBuff, sizeof(gprs_printfBuff), PSTR("GPRS: data sent OK. MEM[%d/%d/%d][%d/%d]\r\n\0") , pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
-		}
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
+	FreeRTOS_write( &pdUART1, "\r\n\0", sizeof("\r\n\0") );
+
+	// Agrego mem.stats
+	if (pxFFStatBuffer.errno > 0 ) {
+		FRTOS_snprintf_P( gprs_printfBuff,  sizeof(gprs_printfBuff), PSTR("GPRS: data ERROR (%d) MEM[%d/%d/%d][%d/%d]\r\n\0") , pxFFStatBuffer.errno, pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del);
+		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	}
+
 }
 //------------------------------------------------------------------------------------
 static bool pv_check_socket_open(void)
@@ -334,8 +339,8 @@ bool return_flag = false;
 
 	for ( i = 0; i < MAX_TRYES_OPEN_SOCKET; i++ ) {
 
-		if ( ! g_socket_is_open() ) {		// Si el socket no esta abierto
-			g_open_socket();				// lo intento abrir.
+		if ( !  pub_gprs_socket_is_open() ) {		// Si el socket no esta abierto
+			pub_gprs_open_socket();				// lo intento abrir.
 		} else {
 			return_flag = true;			// Si esta abierto
 			break;						// me voy.
@@ -363,7 +368,7 @@ uint8_t recds_procesados = 0;
 		vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 
 		// Si el socket se cerro salgo
-		if ( ! g_socket_is_open() ) {
+		if ( !  pub_gprs_socket_is_open() ) {
 			return(0);
 		}
 
@@ -372,7 +377,11 @@ uint8_t recds_procesados = 0;
 		if ( strstr( gprsRx.buffer, "RESET") != NULL ) {
 			// El sever mando la orden de resetearse inmediatamente
 			// Muestro mensaje de respuesta del server.
-			pub_gprs_print_RX_Buffer();
+			if ( systemVars.debugLevel == D_GPRS ) {
+				pub_gprs_print_RX_Buffer();
+			} else {
+				pub_gprs_print_RX_response();
+			}
 			pv_process_response_RESET();
 			return(0);
 		}
@@ -380,14 +389,22 @@ uint8_t recds_procesados = 0;
 		if ( strstr( gprsRx.buffer, "OUTS") != NULL ) {
 			// El sever mando actualizacion de las salidas
 			// Muestro mensaje de respuesta del server.
-			pub_gprs_print_RX_Buffer();
+			if ( systemVars.debugLevel == D_GPRS ) {
+				pub_gprs_print_RX_Buffer();
+			} else {
+				pub_gprs_print_RX_response();
+			}
 			pv_process_response_OUTS();
 		}
 
 		if ( strstr( gprsRx.buffer, "RX_OK") != NULL ) {
 			// Datos procesados por el server.
 			// Muestro mensaje de respuesta del server.
-			pub_gprs_print_RX_Buffer();
+			if ( systemVars.debugLevel == D_GPRS ) {
+				pub_gprs_print_RX_Buffer();
+			} else {
+				pub_gprs_print_RX_response();
+			}
 			recds_procesados = pv_process_response_OK();
 			return(recds_procesados);
 		}
@@ -395,7 +412,11 @@ uint8_t recds_procesados = 0;
 		if ( strstr( gprsRx.buffer, "ERROR") != NULL ) {
 			// ERROR del server: salgo inmediatamente
 			// Muestro mensaje de respuesta del server.
-			pub_gprs_print_RX_Buffer();
+			if ( systemVars.debugLevel == D_GPRS ) {
+				pub_gprs_print_RX_Buffer();
+			} else {
+				pub_gprs_print_RX_response();
+			}
 			return(0);
 		}
 

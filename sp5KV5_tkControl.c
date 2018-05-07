@@ -1,4 +1,5 @@
 /*
+
  * sp5KV3_tkControl.c
  *
  *  Created on: 7/4/2015
@@ -27,7 +28,18 @@ static void pv_check_wdg(void);
 static uint16_t watchdog_timers[NRO_WDGS];
 
 // La tarea pasa por el mismo lugar c/1s.
-#define WDG_CTL_TIMEOUT	5
+#define WDG_CTL_TIMEOUT	10
+
+const char string_0[] PROGMEM = "CMD";
+const char string_1[] PROGMEM = "CTL";
+const char string_2[] PROGMEM = "DIN";
+const char string_3[] PROGMEM = "AIN";
+const char string_4[] PROGMEM = "OUT";
+const char string_5[] PROGMEM = "GTX";
+const char string_6[] PROGMEM = "GRX";
+
+const char * const wdg_names[] PROGMEM = { string_0, string_1, string_2, string_3, string_4, string_5, string_6 };
+
 //------------------------------------------------------------------------------------
 void tkControl(void * pvParameters)
 {
@@ -44,6 +56,12 @@ void tkControl(void * pvParameters)
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("starting tkControl..\r\n\0"));
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	//debug_print_self_stack_watermark(4);
+	// CTL_STACK_SIZE = 512w, HWM=49w
+
+	// Al comienzo leo este handle para asi usarlo para leer el estado de los stacks.
+	xHandle_idle = xTaskGetIdleTaskHandle();
 
 	// Loop
     for( ;; )
@@ -96,6 +114,8 @@ static uint8_t timer_off = 30;
 static uint8_t pinAnt = 1;
 uint8_t pin;
 
+	// Si estamos en modo continuo ( systemVars.timerDial = 0 ) la terminal queda prendida.
+
 	// Inicialmente espero que pase timer_off para comenzar a evaluar
 	// la situacion de la terminal. Durante este tiempo inicial esta prendida
 	if ( timer_off > 0 ) {
@@ -110,8 +130,14 @@ uint8_t pin;
 		return;
 	}
 
-	// Modo MANUAL ( por switch )
-	pin = IO_read_terminal_pin();
+	// Normalmente....
+	if ( systemVars.timerDial == 0 ) {
+		// Si estoy en modo continuo no apago.
+		pin = 1;	// Es como si tubiese el switch activado.
+	} else {
+		// Modo MANUAL ( por switch )
+		pin = IO_read_terminal_pin();
+	}
 
 	// Transicion 1-> 0: APAGO
 	if ( ( pinAnt == 1) && ( pin == 0 ) ) {
@@ -120,7 +146,7 @@ uint8_t pin;
 		vTaskDelay( ( TickType_t)( 1500 / portTICK_RATE_MS ) );
 		IO_term_pwr_off();
 		f_terminalStatus = T_APAGADA;
-		u_uarts_ctl(TERM_APAGAR);
+		pub_uarts_ctl(TERM_APAGAR);
 		pinAnt = pin;
 		return;
 	}
@@ -129,7 +155,7 @@ uint8_t pin;
 	if ( ( pinAnt == 0) && ( pin == 1 ) ) {
 		IO_term_pwr_on();
 		f_terminalStatus = T_PRENDIDA;
-		u_uarts_ctl(TERM_PRENDER);
+		pub_uarts_ctl(TERM_PRENDER);
 		pinAnt = pin;
 		vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 		return;
@@ -156,7 +182,7 @@ static uint8_t count = 3;
     	IO_set_led_KA_logicBoard();				// Led de KA de la placa logica
     	IO_set_led_KA_analogBoard();			// Idem. analog board
 
-     	if ( u_modem_prendido() ) {
+     	if ( pub_gprs_modem_prendido() ) {
     		IO_set_led_MODEM_analogBoard();
     	}
 
@@ -199,9 +225,9 @@ static void pv_tkControl_init(void)
 uint8_t ffRcd;
 StatBuffer_t pxFFStatBuffer;
 uint16_t pos;
-int8_t loadParamStatus = false;
 uint16_t recSize;
 uint8_t wdg;
+bool load_system_params;
 
 	vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
 
@@ -209,15 +235,17 @@ uint8_t wdg;
 	MCP_init(1);
 	IO_term_pwr_on();
 	f_terminalStatus = T_PRENDIDA;
-	u_uarts_ctl(TERM_PRENDER);
+	pub_uarts_ctl(TERM_PRENDER);
 
+
+	load_system_params = false;
 	// Load systemVars
-	if  ( u_loadSystemParams() == true ) {
-		loadParamStatus = true;
+	if  ( pub_loadSystemParams() == true ) {
+		load_system_params = true;
 	} else {
 		pub_loadDefaults();
 		pub_saveSystemParams();
-		loadParamStatus = false;
+		load_system_params = false;
 	}
 
 	// Configuro el ID en el bluetooth: debe hacerse antes que nada
@@ -225,8 +253,7 @@ uint8_t wdg;
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 	vTaskDelay( ( TickType_t)( 2000 / portTICK_RATE_MS ) );
 
-	// Mensaje de load Status.
-	if ( loadParamStatus ) {
+	if  ( load_system_params ) {
 		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("Load config OK.\r\n\0") );
 	} else {
 		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("Load config ERROR: defaults !!\r\n\0") );
@@ -315,18 +342,74 @@ void pub_control_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs )
 	xSemaphoreGive( sem_SYSVars );
 }
 //------------------------------------------------------------------------------------
-void pub_print_wdg_timers(void)
+void pub_debug_print_wdg_timers(void)
 {
 
 uint8_t wdg;
+char buffer[10];
+
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+		taskYIELD();
 
 	for ( wdg = 0; wdg < NRO_WDGS; wdg++ ) {
-		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%d->%d \0"),wdg,watchdog_timers[wdg]);
+		memset(buffer,'\0', 10);
+		strcpy_P(buffer, (PGM_P)pgm_read_word(&(wdg_names[wdg])));
+		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%d(%s)->%d \r\n\0"),wdg,buffer,watchdog_timers[wdg]);
 		FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 	}
+
+	xSemaphoreGive( sem_SYSVars );
+
 	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("\r\n\0"));
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 
 }
-
 //------------------------------------------------------------------------------------
+void pub_debug_print_stack_watermarks(void)
+{
+
+UBaseType_t uxHighWaterMark;
+
+	// tkIdle
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_idle );
+	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("IDLE:%03d,%03d,[%03d]\r\n\0"),configMINIMAL_STACK_SIZE,uxHighWaterMark,(configMINIMAL_STACK_SIZE - uxHighWaterMark)) ;
+	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	// tkCmd
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkCmd );
+	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("CMD: %03d,%03d,[%03d]\r\n\0"),tkCmd_STACK_SIZE,uxHighWaterMark,(tkCmd_STACK_SIZE - uxHighWaterMark)) ;
+	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	// tkControl
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkControl );
+	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("CTL: %03d,%03d,[%03d]\r\n\0"),tkControl_STACK_SIZE,uxHighWaterMark, (tkControl_STACK_SIZE - uxHighWaterMark));
+	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	// tkDigital
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkDigitalIn );
+	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("DIN: %03d,%03d,[%03d]\r\n\0"),tkDigitalIn_STACK_SIZE,uxHighWaterMark, ( tkDigitalIn_STACK_SIZE - uxHighWaterMark));
+	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	// tkAnalog
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkAIn );
+	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("AIN: %03d,%03d,[%03d]\r\n\0"),tkAIn_STACK_SIZE,uxHighWaterMark, ( tkAIn_STACK_SIZE - uxHighWaterMark));
+	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	// tkOutputs
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkOutputs );
+	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("OUT: %03d,%03d,[%03d]\r\n\0"),tkOutputs_STACK_SIZE, uxHighWaterMark, ( tkOutputs_STACK_SIZE - uxHighWaterMark));
+	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	//kGprsTX
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkGprs );
+	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("GTX: %03d,%03d,[%03d]\r\n\0"),tkGprs_STACK_SIZE, uxHighWaterMark, ( tkGprs_STACK_SIZE - uxHighWaterMark));
+	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+	// tkGprsRX
+	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkGprsRx );
+	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("GRX: %03d,%03d,[%03d]\r\n\0"),tkGprsRx_STACK_SIZE,uxHighWaterMark, ( tkGprsRx_STACK_SIZE - uxHighWaterMark));
+	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+}
+//------------------------------------------------------------------------------------
+

@@ -40,6 +40,7 @@ struct {
 	bool modem_prendido;
 	bool signal_redial;
 	bool signal_frameReady;
+	bool monitor_sqe;
 	uint8_t state;
 
 } GPRS_stateVars;
@@ -56,13 +57,8 @@ bool gprs_get_ip(void);
 bool gprs_init_frame(void);
 bool gprs_data(void);
 
-void g_flushRXBuffer(void);
-void g_sleep(uint16_t timeout);
-char *g_getImei(void);
-
-bool g_open_socket(void);
-bool g_socket_is_open(void);
-void g_print_debug_gprs_header( const char *msg);
-bool  g_procesar_signals( bool *exit_flag );
+bool pub_gprs_open_socket(void);
+bool  pub_gprs_socket_is_open(void);
+void pub_gprs_print_header( const char *msg);
 
 #endif /* SP5KV5_TKGPRS_SP5KV5_TKGPRS_H_ */

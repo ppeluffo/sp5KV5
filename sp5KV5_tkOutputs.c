@@ -20,6 +20,7 @@ static void pv_out_init_consignas(void);
 static void pv_out_init_outputs_normales(void);
 
 static 	uint8_t l_out_A, l_out_B;
+static bool exit_loop_to_reconfigure;
 
 // La tarea pasa por el mismo lugar c/25s.
 #define WDG_OUT_TIMEOUT	60
@@ -28,6 +29,7 @@ static 	uint8_t l_out_A, l_out_B;
 void tkOutputs(void * pvParameters)
 {
 ( void ) pvParameters;
+uint8_t timer;
 
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
@@ -44,7 +46,12 @@ void tkOutputs(void * pvParameters)
 
 		// Espero con lo que puedo entrar en tickless
 		// Con 25s aseguro chequear 2 veces por minuto.
-		vTaskDelay( ( TickType_t)( 25000 / portTICK_RATE_MS ) );
+		exit_loop_to_reconfigure = false;
+		for ( timer = 0; timer < 25; timer++) {
+			vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
+			if ( exit_loop_to_reconfigure );
+				break;
+		}
 
 		// Chequeo y aplico.
 		pv_out_chequear();
@@ -237,6 +244,8 @@ static void pv_out_init_outputs_normales(void)
 
 }
 //------------------------------------------------------------------------------------
+// FUNCIONES PUBLICAS
+//------------------------------------------------------------------------------------
 void pub_outputs_load_defaults(void)
 {
 
@@ -250,21 +259,15 @@ void pub_outputs_load_defaults(void)
 
 }
 //------------------------------------------------------------------------------------
-void pub_outputs_config( char *param0, char *param1, char *param2 )
+void pub_outputs_config( uint8_t param0, char *param1, char *param2 )
 {
 	// Configura las salidas en el systemVars.
 
-uint8_t modo = 0;
+//	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("DEBUG: p0=[%d], p1=[%s], p2=[%s]\r\n\0"),param0, param1, param2);
+//	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
 
-	if (!strcmp_P( strupr(param0), PSTR("OFF\0")) ) {
-		modo = OUT_OFF;
-	} else if (!strcmp_P( strupr(param0), PSTR("CONSIGNA\0")) ) {
-		modo = OUT_CONSIGNA;
-	} else if (!strcmp_P( strupr(param0), PSTR("NORMAL\0")) ) {
-		modo = OUT_NORMAL;
-	}
-
-	switch(modo) {
+	// param0 es el modo.
+	switch(param0) {
 	case OUT_OFF:
 		systemVars.outputs.modo = OUT_OFF;
 		break;
@@ -272,17 +275,18 @@ uint8_t modo = 0;
 		systemVars.outputs.modo = OUT_CONSIGNA;
 		if ( param1 != NULL ) { pub_convert_str_to_time_t(param1, &systemVars.outputs.consigna_diurna); }
 		if ( param2 != NULL ) { pub_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
-		pv_out_init_consignas();
+		//pv_out_init_consignas();
 		break;
 	case OUT_NORMAL:
 		systemVars.outputs.modo = OUT_NORMAL;
 		if ( param1 != NULL ) { ( atoi(param1) == 0 )? ( systemVars.outputs.out_A = 0) : (systemVars.outputs.out_A = 1); }
 		if ( param2 != NULL ) { ( atoi(param2) == 0 )? ( systemVars.outputs.out_B = 0) : (systemVars.outputs.out_B = 1); }
-		pv_out_init_outputs_normales();
+		//pv_out_init_outputs_normales();
 		break;
 	}
 
-
+	// Obligo a salir del loop a la tarea para reconfigurarse
+	exit_loop_to_reconfigure = true;
 }
 //----------------------------------------------------------------------------------------
 void pub_output_set_consigna_diurna(void)
@@ -324,7 +328,7 @@ void pub_output_set_outputs( char id_output, uint8_t value)
 		break;
 	}
 
-	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),"OUTPUTS: Set out_%c=%d\r\n\0",id_output,value );
+	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: Set out_%c=%d\r\n\0"),id_output,value );
 	FreeRTOS_write( &pdUART1, out_printfBuff, sizeof(out_printfBuff) );
 
 }

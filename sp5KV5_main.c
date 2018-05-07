@@ -19,12 +19,12 @@
  *
  * !! Agregar el salir automaticamente luego de 30 mins del modo service.
  *
- * V5.1.2:
+ * V5.2.0:
  * - Elimino el uso del sprintf_P e implemento un FRTOS_sprintf. ( no uso progmspace aun )
  * - Agrego al compilador las flags "-fno-move-loop-invariants -Werror=implicit-function-declaration"
  * - Modifico el sistema de menues para que sea mas ordenado.
  * - Agrego la funcion kill.
- * - Elimino el modo SERVICE
+ * - Elimino el wkmode. El monitor sqe lo pongo el config gprs monsqe
  * - Elimino loglevel
  * - Los debuglevel no son acumulativos.
  * - tkControl: elimino el tilt, exitServiceMode
@@ -35,6 +35,26 @@
  *   Lo implemento con un timer para c/tarea. Esta en el kick_wdg resetea el timer correspondiente.
  *   La tarea de wdg disminuye el contador c/s. Si alguno llego a 0 indica que la tarea se colgo y
  *   entonces se resetea el sistema.
+ * - Memoria:
+ *   El programa consume en forma estatica 4K.
+ *   En el heap tengo las queues de las UARTS ( 1K ) mas los stacks de c/tarea ( 2K * 2 ) = 4K por lo
+ *   que el stack minimo son 5K y la suma va dando  9K. Como tengo 16K, dejo para el heap 8K con lo que me
+ *   quedarian 3K libres del heap y 4K de RAM.
+ *   Utilizo las funcionalidades de control de los task_stacks.
+ *   tkCTL: Vemos que en regimen el HWM queda en el orden de 50 teniendo un stack de 512w.
+ *   El mayor consume se produce en la incializacion de los MCP y en cargar los parametros del sistema por lo
+ *   tanto debemos ver de sacarlos de la tarea.
+ *   La primera parte de inicializacion de los MCP no puedo sacarla ya que el driver de I2C requiere que este
+ *   corriendo el FRTOS.
+ *   La segunda parte si bien saco el loaddefault fuera del RTOS ( elimino los semaforos de los load_defaults),
+ *   el printf lleva el stack al minimo por lo que queda en unos 50w y no cambia mas.
+ *	 tkCTL queda con un WMK de 62w.
+ *	 tkAIN tiene un wmk de 234 por lo que bajo su stack en 128.
+ *	 tkCMD tiene un wmk de 177 por lo que bajo el stack en 64
+ *	 tkDIG esta en 160 por lo que lo bajo en 64
+ *   tkGPRS_RX esta en 125 por lo que lo bajo en 64.
+ *   Vemos que la tarea IDLE es la que hace que el sistema se cuelga ya que el stack que usa el chico.
+ *   Lo aumentamos en CONFIG_MIN_STACK a 400.
  *
  *
  * V5.1.1:
@@ -159,7 +179,6 @@ void wdt_init(void)
     return;
 }
 //------------------------------------------------------------------------------------
-
 int main(void)
 {
 unsigned int i,j;
@@ -197,14 +216,14 @@ unsigned int i,j;
 
 	// Creo las tasks
 	xTaskCreate(tkCmd, "CMD", tkCmd_STACK_SIZE, NULL, tkCmd_TASK_PRIORITY,  &xHandle_tkCmd);
-	xTaskCreate(tkDigitalIn, "DIN", tkDigitalIn_STACK_SIZE, NULL, tkDigitalIn_TASK_PRIORITY,  &xHandle_tkDigitalIn);
 	xTaskCreate(tkControl, "CTL", tkControl_STACK_SIZE, NULL, tkControl_TASK_PRIORITY,  &xHandle_tkControl);
+	xTaskCreate(tkDigitalIn, "DIN", tkDigitalIn_STACK_SIZE, NULL, tkDigitalIn_TASK_PRIORITY,  &xHandle_tkDigitalIn);
 	xTaskCreate(tkAnalogIn, "AIN", tkAIn_STACK_SIZE, NULL, tkAIn_TASK_PRIORITY,  &xHandle_tkAIn);
 	xTaskCreate(tkGprsRx, "GPRX", tkGprsRx_STACK_SIZE, NULL, tkGprsRx_TASK_PRIORITY,  &xHandle_tkGprsRx);
-//	xTaskCreate(tkGprsTx, "GPRS", tkGprs_STACK_SIZE, NULL, tkGprs_TASK_PRIORITY,  &xHandle_tkGprs);
+	xTaskCreate(tkGprsTx, "GPRS", tkGprs_STACK_SIZE, NULL, tkGprs_TASK_PRIORITY,  &xHandle_tkGprs);
 	xTaskCreate(tkOutputs, "OUTS", tkOutputs_STACK_SIZE, NULL, tkOutputs_TASK_PRIORITY,  &xHandle_tkOutputs);
 
-	/* Arranco el RTOS. */
+	//* Arranco el RTOS. */
 	vTaskStartScheduler();
 
 	// En caso de panico, aqui terminamos.
@@ -224,9 +243,20 @@ void vApplicationIdleHook( void )
 
 	for(;;) {
 
-		if ( ( u_modem_prendido() == false ) && ( pub_control_terminal_is_on() == false) && ( MODO_DISCRETO )) {
+		if ( ( pub_gprs_modem_prendido() == false ) && ( pub_control_terminal_is_on() == false) && ( MODO_DISCRETO )) {
 			sleep_mode();
 		}
 	}
+
 }
-/*------------------------------------------------------------------------------------*/
+//------------------------------------------------------------------------------------
+/*
+void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName )
+{
+	// Es invocada si en algun context switch se detecta un stack corrompido !!
+
+	FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("PANIC:%s !!\r\n\0"),pcTaskName);
+	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+}
+//------------------------------------------------------------------------------------
+*/

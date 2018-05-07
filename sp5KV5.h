@@ -54,8 +54,8 @@
 
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
-#define SP5K_REV "5.1.2"
-#define SP5K_DATE "@ 20180428"
+#define SP5K_REV "5.2.0"
+#define SP5K_DATE "@ 20180507"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -70,13 +70,17 @@
 //----------------------------------------------------------------------------
 // TASKS
 /* Stack de las tareas */
-#define tkCmd_STACK_SIZE		512
-#define tkControl_STACK_SIZE	512
-#define tkDigitalIn_STACK_SIZE	512
-#define tkAIn_STACK_SIZE		512
-#define tkGprs_STACK_SIZE		512
-#define tkGprsRx_STACK_SIZE		512
-#define tkOutputs_STACK_SIZE	512
+#define tkCmd_STACK_SIZE		448
+#define tkControl_STACK_SIZE	544
+#define tkDigitalIn_STACK_SIZE	448
+#define tkAIn_STACK_SIZE		384
+#define tkGprsRx_STACK_SIZE		448
+#define tkOutputs_STACK_SIZE	448
+#define tkGprs_STACK_SIZE		650
+//                            = 3370 + 400 = 3770 *2 = 7540: Memoria del heap usada para stack de tareas.
+// El heap esta definido en 10K de modo que quedan 2460 libres para las uart queues y otros.
+// La compilacion indica 4004 bytes o sea que quedan libres 12308 de los cuales 10000 se lleva el heap
+
 
 /* Prioridades de las tareas */
 #define tkCmd_TASK_PRIORITY	 		( tskIDLE_PRIORITY + 1 )
@@ -97,7 +101,7 @@ void tkGprsTx(void * pvParameters);
 void tkOutputs(void * pvParameters);
 void tkGprsRx(void * pvParameters);
 
-TaskHandle_t xHandle_tkCmd, xHandle_tkControl, xHandle_tkDigitalIn, xHandle_tkAIn, xHandle_tkGprs, xHandle_tkGprsRx, xHandle_tkOutputs;
+TaskHandle_t xHandle_idle, xHandle_tkCmd, xHandle_tkControl, xHandle_tkDigitalIn, xHandle_tkAIn, xHandle_tkGprs, xHandle_tkGprsRx, xHandle_tkOutputs;
 
 bool startTask;
 typedef struct {
@@ -117,9 +121,8 @@ wdgStatus_t wdgStatus;
 xSemaphoreHandle sem_SYSVars;
 #define MSTOTAKESYSVARSSEMPH ((  TickType_t ) 10 )
 
-typedef enum { WK_NORMAL = 0, WK_MONITOR_SQE  } t_wrkMode;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
-typedef enum { D_NONE = 0, D_BASIC = 1, D_DATA = 2, D_GPRS = 4, D_MEM = 8, D_DIGITAL = 16, D_OUTPUTS = 32, D_DEBUG = 64 } t_debug;
+typedef enum { D_NONE = 0, D_MEM, D_GPRS, D_ANALOG, D_DIGITAL , D_OUTPUTS } t_debug;
 typedef enum { T_APAGADA = 0, T_PRENDIDA = 1 } t_terminalStatus;
 typedef enum { OUT_OFF = 0, OUT_CONSIGNA, OUT_NORMAL } t_outputs;
 typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;
@@ -193,8 +196,6 @@ typedef struct {
 	uint16_t timerPoll;
 	uint32_t timerDial;
 
-	t_wrkMode wrkMode;
-
 	uint8_t debugLevel;		// Indica que funciones debugear.
 	uint8_t gsmBand;
 
@@ -207,7 +208,7 @@ typedef struct {
 	// Configuracion de Canales analogicos
 	uint8_t Imin[NRO_ANALOG_CHANNELS];				// Coeficientes de conversion de I->magnitud (presion)
 	uint8_t Imax[NRO_ANALOG_CHANNELS];
-	uint8_t Mmin[NRO_ANALOG_CHANNELS];
+	double Mmin[NRO_ANALOG_CHANNELS];
 	double Mmax[NRO_ANALOG_CHANNELS];
 
 	// Configuracion de canales digitales
@@ -227,9 +228,9 @@ systemVarsType systemVars,tmpSV;
 // FUNCIONES DE USO GENERAL.
 //------------------------------------------------------------------------------------
 // utils
-void u_uarts_ctl(uint8_t cmd);
-void u_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
-bool u_loadSystemParams(void);
+void pub_uarts_ctl(uint8_t cmd);
+void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
+bool pub_loadSystemParams(void);
 
 bool pub_saveSystemParams(void);
 void pub_loadDefaults(void);
@@ -248,7 +249,8 @@ frameData_t *pub_analog_get_data_frame_ptr(void);
 // tkControl
 bool pub_control_terminal_is_on(void);
 void pub_control_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs );
-void pub_print_wdg_timers(void);
+void pub_debug_print_wdg_timers(void);
+void pub_debug_print_stack_watermarks(void);
 
 // tkDigital
 void pub_digital_read_counters( dinData_t *dIn );
@@ -256,16 +258,16 @@ void pub_digital_load_defaults(void);
 bool pub_digital_config_channel( uint8_t channel, char *chName, char *s_magPP );
 
 // tkGprs
-int32_t u_readTimeToNextDial(void);
-bool u_modem_prendido(void);
+int32_t pub_gprs_readTimeToNextDial(void);
+bool pub_gprs_modem_prendido(void);
 void pub_gprs_redial(void);
 void pub_gprs_flush_RX_buffer(void);
 void pub_gprs_print_RX_Buffer(void);
-
+void pub_gprs_print_RX_response(void);
 
 // tkOutputs
 void pub_outputs_load_defaults(void);
-void pub_outputs_config( char *param0, char *param1, char *param2 );
+void pub_outputs_config( uint8_t param0, char *param1, char *param2 );
 void pub_output_set_consigna_diurna(void);
 void pub_output_set_consigna_nocturna(void);
 void pub_output_set_outputs( char id_output, uint8_t value);
@@ -273,17 +275,18 @@ void pub_output_set_outputs( char id_output, uint8_t value);
 char debug_printfBuff[CHAR64];
 
 void debug_test_printf(void);
+void debug_print_self_stack_watermark(uint8_t trace);
 
 // WATCHDOG
-#define WDG_CTL			0
-#define WDG_CMD			1
+#define WDG_CMD			0
+#define WDG_CTL			1
 #define WDG_DIN			2
-#define WDG_OUT			3
-#define WDG_AIN			4
+#define WDG_AIN			3
+#define WDG_OUT			4
 #define WDG_GPRSRX		5
 #define WDG_GPRS		6
 
-#define NRO_WDGS		6
+#define NRO_WDGS		7
 
 //------------------------------------------------------------------------------------
 

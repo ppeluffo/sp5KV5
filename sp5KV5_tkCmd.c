@@ -20,7 +20,6 @@ static uint8_t pv_makeArgv(void);
 
 static void pv_cmd_wrOUT8814(void);
 bool pv_cmdWrDebugLevel(char *s);
-bool pv_cmdWrkMode(char *s0, char *s1);
 static void pv_readMemory(void);
 
 //----------------------------------------------------------------------------------------
@@ -124,15 +123,13 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  mcp {devId}{regAddr}{regValue}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  clearQ0 clearQ1\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  clearQ {0|1}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  ee addr string\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  led {0|1},termpwr {0|1},sensorpwr {0|1},analogpwr {0|1}\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  termpwr {0|1},sensorpwr {0|1},analogpwr {0|1}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  gprs (pwr|sw) {on|off}\r\n\0"));
-		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  gprs cmd {atcmd}, redial\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  gprs cmd {atcmd}, redial, (pwr|sw) {on|off}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	}
 
@@ -144,13 +141,13 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  din {0|1}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  rtc, adc {ch}, frame, wdg\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  rtc, adc {ch}, frame\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  ee {addr}{lenght}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  frame,memory,gprs\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  frame,memory\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  gprs (rsp,dcd)\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  gprs (rsp,dcd)\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	}
 
@@ -168,13 +165,11 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  rtc YYMMDDhhmm\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR( "  wrkmode [ monitor sqe ] \r\n\0"));
-		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerpoll, timerdial, dlgid, gsmband, terminal {on|off} \r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  pwrsave [modo {on|off}, {hhmm1}, {hhmm2}\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  debuglevel {none,mem,output,data,gprs,digital} \r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  debug {none,mem,gprs,analog,digital,outputs} \r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  A{0..2} aname imin imax mmin mmax\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -451,21 +446,6 @@ StatBuffer_t pxFFStatBuffer;
 	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  memory: wrPtr=%d,rdPtr=%d,delPtr=%d,Free=%d,4del=%d \r\n"), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
-	/* WRK mode (NORMAL / SERVICE) */
-	pos = FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  wrkmode: "));
-	switch (systemVars.wrkMode) {
-	case WK_NORMAL:
-		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("normal\r\n"));
-		break;
-	case WK_MONITOR_SQE:
-		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("monitor_sqe\r\n"));
-		break;
-	default:
-		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("ERROR\r\n"));
-		break;
-	}
-	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-
 	// PWR SAVE:
 	if ( systemVars.pwrSave.modo ==  modoPWRSAVE_OFF ) {
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  pwrsave=off\r\n\0"));
@@ -478,14 +458,14 @@ StatBuffer_t pxFFStatBuffer;
 	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerPoll: [%ds]\r\n\0"),systemVars.timerPoll );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
-	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerDial: [%lus]: %li\r\n\0"), systemVars.timerDial, u_readTimeToNextDial() );
+	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerDial: [%lus]: %li\r\n\0"), systemVars.timerDial, pub_gprs_readTimeToNextDial() );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
-	/* DebugLevel */
-	pos = FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  debugLevel: "));
+	/* Debug */
+	pos = FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  debug: "));
 	if ( systemVars.debugLevel == D_NONE) {
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("none" ));
-	} else if ( systemVars.debugLevel == D_DATA) {
+	} else if ( systemVars.debugLevel == D_ANALOG) {
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("data" ));
 	} else if ( systemVars.debugLevel == D_GPRS) {
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("gprs" ));
@@ -544,7 +524,7 @@ StatBuffer_t pxFFStatBuffer;
 
 	/* Configuracion de canales analogicos */
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  a%d{%d-%dmA/%d-%.02f}(%s)\r\n\0"),channel, systemVars.Imin[channel],systemVars.Imax[channel],systemVars.Mmin[channel],systemVars.Mmax[channel], systemVars. aChName[channel] );
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  a%d{%d-%dmA/%.02f %.02f}(%s)\r\n\0"),channel, systemVars.Imin[channel],systemVars.Imax[channel],systemVars.Mmin[channel],systemVars.Mmax[channel], systemVars. aChName[channel] );
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	}
 	/* Configuracion de canales digitales */
@@ -576,9 +556,16 @@ uint8_t pin;
  		return;
  	}
 
+ 	// WMK
+ 	if (!strcmp_P( strupr(argv[1]), PSTR("WMK\0"))) {
+ 		pub_debug_print_stack_watermarks();
+ 		return;
+ 	}
+
+
  	// WDT
  	if (!strcmp_P( strupr(argv[1]), PSTR("WDT\0"))) {
- 		pub_print_wdg_timers();
+ 		pub_debug_print_wdg_timers();
  		return;
  	}
 
@@ -672,12 +659,6 @@ uint8_t pin;
 
  	}
 
-	// WATCHDOG
-	if (!strcmp_P( strupr(argv[1]), PSTR("WDG\0"))) {
-		pub_print_wdg_timers();
-		return;
-	}
-
 	// FRAME
 	if (!strcmp_P( strupr(argv[1]), PSTR("FRAME\0"))) {
 		pub_analog_read_frame( false);
@@ -706,6 +687,7 @@ uint8_t pin;
 static void cmdConfigFunction(void)
 {
 bool retS = false;
+uint8_t outputs_mode;
 
 	pv_makeArgv();
 
@@ -827,15 +809,8 @@ bool retS = false;
 	}
 
 	/* DEBUGLEVEL */
-	if (!strcmp_P( strupr(argv[1]), PSTR("DEBUGLEVEL\0"))) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("DEBUG\0"))) {
 		retS = pv_cmdWrDebugLevel(argv[2]);
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-		return;
-	}
-
-	/* WRKMODE */
-	if (!strcmp_P( strupr(argv[1]), PSTR("WRKMODE\0"))) {
-		retS = pv_cmdWrkMode(argv[2],argv[3]);
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
@@ -888,12 +863,11 @@ bool retS = false;
 
 	// PWRSAVE
 	if (!strcmp_P( strupr(argv[1]), PSTR("PWRSAVE\0"))) {
-		if (!strcmp_P( strupr(argv[2]), PSTR( "ON"))) { u_configPwrSave ( modoPWRSAVE_ON, argv[3], argv[4] ); }
-		if (!strcmp_P( strupr(argv[2]), PSTR("OFF"))) { u_configPwrSave ( modoPWRSAVE_OFF, argv[3], argv[4] ); }
+		if (!strcmp_P( strupr(argv[2]), PSTR( "ON"))) { pub_configPwrSave ( modoPWRSAVE_ON, argv[3], argv[4] ); }
+		if (!strcmp_P( strupr(argv[2]), PSTR("OFF"))) { pub_configPwrSave ( modoPWRSAVE_OFF, argv[3], argv[4] ); }
 		pv_snprintfP_OK();
 		return;
 	}
-
 
 	// RTC
 	if (!strcmp_P( strupr(argv[1]), PSTR("RTC\0"))) {
@@ -912,10 +886,24 @@ bool retS = false;
 
 	// config outputs
 	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0")) ) {
-		pub_outputs_config( argv[2], argv[3], argv[4] );
+		outputs_mode = 0;
+		if (!strcmp_P( strupr(argv[2]), PSTR("OFF\0"))) {
+			outputs_mode = 0;
+		} else if (!strcmp_P( strupr(argv[2]), PSTR("CONSIGNA\0"))) {
+			outputs_mode = 1;
+		} else if (!strcmp_P( strupr(argv[2]), PSTR("NORMAL\0"))) {
+			outputs_mode = 2;
+		};
+
+		pub_outputs_config( outputs_mode, argv[3], argv[4] );
 		pv_snprintfP_OK();
 		return;
 	}
+
+	// CMD NOT FOUND
+	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("ERROR\r\nCMD NOT DEFINED\r\n"));
+	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	return;
 
 }
 /*------------------------------------------------------------------------------------*/
@@ -1066,25 +1054,6 @@ bool retS = false;
 /*------------------------------------------------------------------------------------*/
 // FUNCIONES PRIVADAS
 //-------------------------------------------------------------------------------------
-bool pv_cmdWrkMode(char *s0, char *s1)
-{
-bool retS = false;
-
-	if ((!strcmp_P(strupr(s0), PSTR("MONITOR")))) {
-
-		if ((!strcmp_P( strupr(s1), PSTR("SQE")))) {
-			systemVars.wrkMode = WK_MONITOR_SQE;
-			retS = true;
-			goto quit;
-		}
-
-	}
-
-quit:
-
-	return(retS);
-}
-/*------------------------------------------------------------------------------------*/
 bool pv_cmdWrDebugLevel(char *s)
 {
 
@@ -1093,8 +1062,8 @@ bool pv_cmdWrDebugLevel(char *s)
 		return(true);
 	}
 
-	if ((!strcmp_P( strupr(s), PSTR("DATA")))) {
-		systemVars.debugLevel = D_DATA;
+	if ((!strcmp_P( strupr(s), PSTR("ANALOG")))) {
+		systemVars.debugLevel = D_ANALOG;
 		return(true);
 	}
 
@@ -1115,11 +1084,6 @@ bool pv_cmdWrDebugLevel(char *s)
 
 	if ((!strcmp_P( strupr(s), PSTR("DIGITAL")))) {
 		systemVars.debugLevel = D_DIGITAL;
-		return(true);
-	}
-
-	if ((!strcmp_P( strupr(s), PSTR("DEBUG")))) {
-		systemVars.debugLevel = D_DEBUG;
 		return(true);
 	}
 
@@ -1312,7 +1276,6 @@ static void pv_cmd_wrOUT8814(void)
 static void pv_cmd_rwGPRS(uint8_t cmd_mode )
 {
 
-char *p;
 
 	if ( cmd_mode == WR_CMD ) {
 

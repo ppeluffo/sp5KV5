@@ -66,74 +66,6 @@ TickType_t xLastWakeTime;
 //------------------------------------------------------------------------------------
 // FUNCIONES PRIVADAS
 //------------------------------------------------------------------------------------
-void pub_analog_read_frame(bool saveInBD )
-{
-	// Funcion usada para leer los datos de todos los modulos, guardarlos en memoria
-	// e imprimirlos.
-	// La usa por un lado tkData en forma periodica y desde el cmd line cuando se
-	// da el comando read frame.
-
-static bool primer_frame = true;
-	// El primer frame puede tener errores en las medidas digitales ya que no corresponden
-	// a un ciclo completo por lo tanto lo descarto.
-bool retS = false;
-uint8_t channel;
-
-	// Leo el ADC para tener los  canales analogicos.
-	pv_analog_read_adc();
-
-	// Convierto los valores a magnitudes
-	pv_analog_convert_raw_to_mag();
-
-	// Armo el frame.
-
-	memset(&pv_data_frame,'\0', sizeof(frameData_t));
-
-	// Agrego el timestamp
-	RTC_read(&pv_data_frame.rtc);
-
-	// Agrego los canales analogicos
-	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
-		pv_data_frame.analogIn[channel] = rAIn[channel];
-	}
-
-	// Agrego la bateria
-	pv_data_frame.batt = rAIn[3];
-
-	// Agrego los canales digital ( y reseteo los contadores )
-	pub_digital_read_counters( &pv_data_frame.dIn );
-
-	// Agrego el canal digital de nivel 0.
-	pv_data_frame.dIn.level0 = IO_read_dinL0_pin();
-
-	// Para no incorporar el error de los contadores en el primer frame no lo guardo.
-	if ( primer_frame ) {
-		primer_frame = false;
-		saveInBD = false;
-	}
-
-	// Si me invocaron por modo comando, no salvo en BD
-	if ( saveInBD ) {
-		// Modo normal: salvo en la BD
-		retS = pv_analog_save_frame_inBD();
-		if ( !retS ) {
-			FRTOS_snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff) ,PSTR("DATA: BD save ERROR !!\r\n\0"));
-			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
-			return;
-		}
-
-		// y aviso a tkGprs que hay un frame listo. En modo continuo lo va a trasmitir enseguida.
-		while ( xTaskNotify(xHandle_tkGprsRx, TK_FRAME_READY , eSetBits ) != pdPASS ) {
-			vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
-		}
-	}
-
-	// Muestro en pantalla.
-	pub_analog_print_frame(&pv_data_frame);
-
-
-}
-//------------------------------------------------------------------------------------
 static void pv_analog_read_adc ( void )
 {
 	// Realiza  el poleo de los canales del conversor A/D.
@@ -144,7 +76,7 @@ bool retS;
 uint8_t items;
 
 // Entry:
-	if ( systemVars.debugLevel == D_DATA)  {
+	if ( systemVars.debugLevel == D_ANALOG)  {
 		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: poll\r\n\0" ));
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
@@ -171,8 +103,8 @@ uint8_t items;
 
 			if ( retS ) {
 				adc_samples[channel][items] = adcRetValue;
-				if ( systemVars.debugLevel == D_DATA ) {
-					FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: poll ch_%d=%d\r\n\0"), channel, adcRetValue );
+				if ( systemVars.debugLevel == D_ANALOG ) {
+					FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: [%02d] poll ch_%d=%d\r\n\0"), items, channel, adcRetValue );
 					FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 				}
 
@@ -215,7 +147,7 @@ uint8_t count;
 		}
 		avg[channel] /= CICLOS_POLEO;
 		sigma[channel] = sqrt (sigma[channel] / CICLOS_POLEO -  ( avg[channel] * avg[channel] ));
-		if ( systemVars.debugLevel == D_DATA ) {
+		if ( systemVars.debugLevel == D_ANALOG ) {
 			FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: AvgCh[%d]=%.02f, Sg=%.02f\r\n\0"), channel, avg[channel], sigma[channel]);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
@@ -229,11 +161,16 @@ uint8_t count;
 			if ( abs ( adc_samples[channel][i] - avg[channel]) < sigma[channel] ) {
 				count++;
 				rAIn[channel] += adc_samples[channel][i];
+			} else {
+				if ( systemVars.debugLevel == D_ANALOG ) {
+					FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: AvgOptimo discard. pos=%d,ch=%d,val=%.1f\r\n\0"), i, channel,adc_samples[channel][i] );
+					FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+				}
 			}
 		}
 		rAIn[channel] /= count;
-		if ( systemVars.debugLevel == D_DATA ) {
-			FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: AvgOptimo[%d]=%.02f \r\n\0"), channel, rAIn[channel]);
+		if ( systemVars.debugLevel == D_ANALOG ) {
+			FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: AvgOptimo[%d]=%.02f, counts=%d \r\n\0"), channel, rAIn[channel], count);
 			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 		}
 	}
@@ -250,7 +187,7 @@ uint8_t count;
 		if ( D != 0 ) {
 			M = ( systemVars.Mmax[channel]  -  systemVars.Mmin[channel] ) / D;
 			rAIn[channel] = systemVars.Mmin[channel] + M * ( I - systemVars.Imin[channel] );
-			if ( systemVars.debugLevel ==  D_DATA)  {
+			if ( systemVars.debugLevel ==  D_ANALOG )  {
 				FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: (ch %d) D=%d, M=%.3f, I=%.3f, Mag=%.02f\r\n\0"),channel, D,M,I, rAIn[channel]);
 				FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 			}
@@ -263,7 +200,7 @@ uint8_t count;
 
 	// Convierto la bateria.
 	rAIn[NRO_ANALOG_CHANNELS] = (15 * rAIn[NRO_ANALOG_CHANNELS]) / 4096;	// Bateria
-	if ( systemVars.debugLevel == D_DATA) {
+	if ( systemVars.debugLevel == D_ANALOG ) {
 		FRTOS_snprintf_P( aIn_printfBuff,CHAR128,PSTR("DATA: batt=%.02f\r\n\0"), rAIn[NRO_ANALOG_CHANNELS]);
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
@@ -342,7 +279,7 @@ static void pv_analog_prender_sensores(void)
 
 	IO_sensor_pwr_on();
 	IO_analog_pwr_on();
-	if ( systemVars.debugLevel == D_DATA) {
+	if ( systemVars.debugLevel == D_ANALOG ) {
 		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: Sensors On\r\n\0"));
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
@@ -354,7 +291,7 @@ static void pv_analog_apagar_sensores(void)
 
 	IO_sensor_pwr_off();
 	IO_analog_pwr_off();
-	if ( systemVars.debugLevel == D_DATA) {
+	if ( systemVars.debugLevel == D_ANALOG ) {
 		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DATA: Sensors Off\r\n\0"));
 		FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 	}
@@ -397,7 +334,7 @@ bool pub_analog_config_channel( uint8_t channel, char *chName, char *s_iMin, cha
 
 	if ( s_iMin != NULL ) { systemVars.Imin[channel] = atoi(s_iMin); }
 	if ( s_iMax != NULL ) {	systemVars.Imax[channel] = atoi(s_iMax); }
-	if ( s_mMin != NULL ) {	systemVars.Mmin[channel] = atoi(s_mMin); }
+	if ( s_mMin != NULL ) {	systemVars.Mmin[channel] = atof(s_mMin); }
 	if ( s_mMax != NULL ) {	systemVars.Mmax[channel] = atof(s_mMax); }
 
 	xSemaphoreGive( sem_SYSVars );
@@ -419,7 +356,7 @@ uint8_t channel;
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS ; channel++) {
 		systemVars.Imin[channel] = 0;
 		systemVars.Imax[channel] = 20;
-		systemVars.Mmin[channel] = 0;
+		systemVars.Mmin[channel] = 0.0;
 		systemVars.Mmax[channel] = 6.0;
 	}
 
@@ -434,5 +371,73 @@ frameData_t *pub_analog_get_data_frame_ptr(void)
 	// Retorna el puntero a la estructura de datos local con el ultimo frame.
 	// Se usa para imprimir el frame en otras parte.
 	return(&pv_data_frame);
+}
+//------------------------------------------------------------------------------------
+void pub_analog_read_frame(bool saveInBD )
+{
+	// Funcion usada para leer los datos de todos los modulos, guardarlos en memoria
+	// e imprimirlos.
+	// La usa por un lado tkData en forma periodica y desde el cmd line cuando se
+	// da el comando read frame.
+
+static bool primer_frame = true;
+	// El primer frame puede tener errores en las medidas digitales ya que no corresponden
+	// a un ciclo completo por lo tanto lo descarto.
+bool retS = false;
+uint8_t channel;
+
+	// Leo el ADC para tener los  canales analogicos.
+	pv_analog_read_adc();
+
+	// Convierto los valores a magnitudes
+	pv_analog_convert_raw_to_mag();
+
+	// Armo el frame.
+
+	memset(&pv_data_frame,'\0', sizeof(frameData_t));
+
+	// Agrego el timestamp
+	RTC_read(&pv_data_frame.rtc);
+
+	// Agrego los canales analogicos
+	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
+		pv_data_frame.analogIn[channel] = rAIn[channel];
+	}
+
+	// Agrego la bateria
+	pv_data_frame.batt = rAIn[3];
+
+	// Agrego los canales digital ( y reseteo los contadores )
+	pub_digital_read_counters( &pv_data_frame.dIn );
+
+	// Agrego el canal digital de nivel 0.
+	pv_data_frame.dIn.level0 = IO_read_dinL0_pin();
+
+	// Para no incorporar el error de los contadores en el primer frame no lo guardo.
+	if ( primer_frame ) {
+		primer_frame = false;
+		saveInBD = false;
+	}
+
+	// Si me invocaron por modo comando, no salvo en BD
+	if ( saveInBD ) {
+		// Modo normal: salvo en la BD
+		retS = pv_analog_save_frame_inBD();
+		if ( !retS ) {
+			FRTOS_snprintf_P( aIn_printfBuff, sizeof(aIn_printfBuff) ,PSTR("DATA: BD save ERROR !!\r\n\0"));
+			FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+			return;
+		}
+
+		// y aviso a tkGprs que hay un frame listo. En modo continuo lo va a trasmitir enseguida.
+		while ( xTaskNotify(xHandle_tkGprsRx, TK_FRAME_READY , eSetBits ) != pdPASS ) {
+			vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+		}
+	}
+
+	// Muestro en pantalla.
+	pub_analog_print_frame(&pv_data_frame);
+
+
 }
 //------------------------------------------------------------------------------------

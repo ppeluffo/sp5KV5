@@ -23,16 +23,15 @@ uint8_t hw_tries, sw_tries;
 bool exit_flag = bool_RESTART;
 
 // Entry:
-
 	pub_control_watchdog_kick(WDG_GPRS, WDG_GPRS_TO_PRENDER);
 
 	GPRS_stateVars.state = G_PRENDER;
-	u_uarts_ctl(MODEM_PRENDER);
+	pub_uarts_ctl(MODEM_PRENDER);
 
 	// Debo poner esta flag en true para que el micro no entre en sleep y pueda funcionar el puerto
 	// serial y leer la respuesta del AT del modem.
 	GPRS_stateVars.modem_prendido = true;
-	g_sleep(3);
+	vTaskDelay( (portTickType)( 3000 / portTICK_RATE_MS ) );
 
 	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: prender.\r\n\0" ));
 	FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
@@ -42,13 +41,13 @@ bool exit_flag = bool_RESTART;
 	strncpy_P(systemVars.dlg_ip_address, PSTR("000.000.000.000\0"),16);
 	systemVars.csq = 0;
 	systemVars.dbm = 0;
-	g_sleep(5);		// Espero 5s
+	vTaskDelay( (portTickType)( 5000 / portTICK_RATE_MS ) );		// Espero 5s
 
 // Loop:
 	for ( hw_tries = 0; hw_tries < MAX_HW_TRIES_PWRON; hw_tries++ ) {
 
 		IO_modem_hw_pwr_on();	// Prendo la fuente ( alimento al modem ) HW
-		g_sleep(1);				// Espero 1s que se estabilize la fuente.
+		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );			// Espero 1s que se estabilize la fuente.
 
 		// Reintento prenderlo activando el switch pin
 		for ( sw_tries = 0; sw_tries < MAX_SW_TRIES_PWRON; sw_tries++ ) {
@@ -67,12 +66,12 @@ bool exit_flag = bool_RESTART;
 			IO_modem_sw_switch_high();
 
 			// Espero 10s para interrogarlo
-			g_sleep(10);
+			vTaskDelay( (portTickType)( 10000 / portTICK_RATE_MS ) );
 
 			// Envio un AT y espero un OK para confirmar que prendio.
 			pub_gprs_flush_RX_buffer();
 			FreeRTOS_write( &pdUART0, "AT\r\0", sizeof("AT\r\0") );
-			g_sleep(1);
+			vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 
 			pub_gprs_print_RX_Buffer();	// Muestro lo que recibi del modem ( en modo debug )
 
@@ -95,14 +94,13 @@ bool exit_flag = bool_RESTART;
 			}
 
 			// No prendio: Espero 5s antes de reintentar prenderlo por SW.
-			g_sleep(5);
-
+			vTaskDelay( (portTickType)( 5000 / portTICK_RATE_MS ) );
 
 		}
 
 		// No prendio luego de MAX_SW_TRIES_PWRON intentos SW. Apago y prendo de nuevo
 		IO_modem_hw_pwr_off();	// Apago la fuente
-		g_sleep(10);			// Espero 10s antes de reintentar
+		vTaskDelay( (portTickType)( 10000 / portTICK_RATE_MS ) );			// Espero 10s antes de reintentar
 	}
 
 	// Si salgo por aqui es que el modem no prendio luego de todos los reintentos
@@ -132,7 +130,7 @@ uint8_t i,j,start, end;
 
 	pub_gprs_flush_RX_buffer();
 	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGSN\r\0"));
-	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	FreeRTOS_write( &pdUART0, &gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 
@@ -160,9 +158,10 @@ uint8_t i,j,start, end;
 			goto EXIT;
 
 		// Busco el ultimo digito y copio todos
-		for ( i = start; i < 64; i++ ) {
+		for ( i = start; i < IMEIBUFFSIZE; i++ ) {
 			if ( isdigit( gprs_printfBuff[i]) ) {
 				buff_gprs_imei[j++] = gprs_printfBuff[i];
+				buff_gprs_imei[ IMEIBUFFSIZE - 1 ] = '\0';
 			} else {
 				break;
 			}
@@ -173,7 +172,7 @@ uint8_t i,j,start, end;
 EXIT:
 
 	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: IMEI[%s]\r\n\0"), buff_gprs_imei);
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: IMEI[%s]\r\n\0"), &buff_gprs_imei);
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 

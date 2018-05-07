@@ -57,7 +57,7 @@ bool exit_flag = bool_RESTART;
 		while ( check_tryes-- > 0 ) {
 
 			// Doy tiempo a que responda la red
-			g_sleep(3);
+			vTaskDelay( (portTickType)( 3000 / portTICK_RATE_MS ) );
 
 			// Analizo la respuesta
 			if ( strstr( gprsRx.buffer, "E2IPA: 000") != NULL ) {
@@ -80,7 +80,7 @@ bool exit_flag = bool_RESTART;
 		}
 
 		// Espero 5s antes de dar el comando AT de nuevo
-		g_sleep(5);
+		vTaskDelay( (portTickType)( 5000 / portTICK_RATE_MS ) );
 	}
 
 	// Aqui es que luego de tantos reintentos no consegui la IP.
@@ -107,8 +107,6 @@ char c;
 
 	// Envio el comado AT*E2IPI para leer la IP
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*E2IPA=1,1\r\0"),systemVars.apn);
-	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
 
 	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*E2IPI=0\r\0"));
 	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
