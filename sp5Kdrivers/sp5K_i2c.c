@@ -169,9 +169,11 @@ i2c_retry:
 	if ( i2c_status == TW_MT_ARB_LOST) goto i2c_retry;
 	if ( (i2c_status != TW_START) && (i2c_status != TW_REP_START) ) goto i2c_quit;
 
+#ifdef SP5KV5_3CH
 	// En el caso del ADC, el read no lleva la parte de mandar la SLA+W. !!!!!
 	if ( devAddress == ADS7828_ADDR)
 		goto SRL_R;
+#endif /* SP5KV5_3CH */
 
 	// Pass2) (SLA_W) Send slave address. Debo recibir 0x18 ( SLA_ACK )
 	txbyte = devAddress | TW_WRITE;

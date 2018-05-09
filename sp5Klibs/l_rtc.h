@@ -22,6 +22,8 @@
 #include "sp5K_i2c.h"
 #include "FRTOS_stdio.h"
 
+#include "sp5KV5_defs.h"
+
 //#define rtc_DEBUG
 
 #ifdef rtc_DEBUG

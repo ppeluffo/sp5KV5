@@ -14,16 +14,19 @@
 
 static char ctl_printfBuff[CHAR128];
 
-//static bool f_tilt_alarmFired = false;
 static t_terminalStatus f_terminalStatus;
 
 static void pv_tkControl_init(void);
 static void pv_init_show_reset_cause(void);
-
 static void pv_check_terminal(void);
+
 static void pv_check_leds(void);
 static void pv_check_daily_reset(void);
 static void pv_check_wdg(void);
+static void pv_switch_led_KA( t_onoff action );
+static void pv_switch_led_MODEM( t_onoff action );
+
+//------------------------------------------------------------------------------------
 
 static uint16_t watchdog_timers[NRO_WDGS];
 
@@ -89,6 +92,7 @@ static void pv_check_wdg(void)
 	// Si alguno llego a 0 es que la tarea se colgo y entonces se reinicia el sistema.
 
 uint8_t wdg;
+char buffer[10];
 
 	// Si algun WDG no se borro, me reseteo
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
@@ -96,7 +100,9 @@ uint8_t wdg;
 
 	for ( wdg = 0; wdg < NRO_WDGS; wdg++ ) {
 		if ( --watchdog_timers[wdg] == 0 ) {
-			FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("CTL: WDG TO(%d) !!\r\n\0"),wdg);
+			memset(buffer,'\0', 10);
+			strcpy_P(buffer, (PGM_P)pgm_read_word(&(wdg_names[wdg])));
+			FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("CTL: WDG TO(%s) !!\r\n\0"),buffer);
 			FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 			while(1);		// Me reseteo por watchdog
 		}
@@ -110,6 +116,8 @@ uint8_t wdg;
 //------------------------------------------------------------------------------------
 static void pv_check_terminal(void)
 {
+#ifdef SP5KV5_3CH
+
 static uint8_t timer_off = 30;
 static uint8_t pinAnt = 1;
 uint8_t pin;
@@ -161,6 +169,7 @@ uint8_t pin;
 		return;
 	}
 
+#endif /* SP5KV5_3CH */
 }
 //------------------------------------------------------------------------------------
 static void pv_check_leds(void)
@@ -179,11 +188,10 @@ static uint8_t count = 3;
 
     if ( pub_control_terminal_is_on() == true ) {
     	// Prendo.
-    	IO_set_led_KA_logicBoard();				// Led de KA de la placa logica
-    	IO_set_led_KA_analogBoard();			// Idem. analog board
+    	pv_switch_led_KA(ON);
 
      	if ( pub_gprs_modem_prendido() ) {
-    		IO_set_led_MODEM_analogBoard();
+     		pv_switch_led_MODEM(ON);
     	}
 
    	}
@@ -192,9 +200,8 @@ static uint8_t count = 3;
    	//vTaskDelay( 1 );
 
    	// Apago
-   	IO_clear_led_KA_logicBoard();
-    IO_clear_led_KA_analogBoard();
-    IO_clear_led_MODEM_analogBoard();
+    pv_switch_led_KA(OFF);
+    pv_switch_led_MODEM(OFF);
 
  }
 //------------------------------------------------------------------------------------
@@ -232,7 +239,11 @@ bool load_system_params;
 	vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
 
 	MCP_init(0);				// Esto prende la terminal.
+
+#ifdef SP5KV5_3CH
 	MCP_init(1);
+#endif /* SP5KV5_3CH */
+
 	IO_term_pwr_on();
 	f_terminalStatus = T_PRENDIDA;
 	pub_uarts_ctl(TERM_PRENDER);
@@ -276,8 +287,12 @@ bool load_system_params;
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 
 	pos = FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("Modules:: BASIC\0"));
+
+#ifdef SP5KV5_3CH
 	pos += FRTOS_snprintf_P( &ctl_printfBuff[pos],sizeof(ctl_printfBuff),PSTR("+PRESION\0"));
 	pos += FRTOS_snprintf_P( &ctl_printfBuff[pos],sizeof(ctl_printfBuff),PSTR("+CONSIGNA\0"));
+#endif /* SP5KV5_3CH */
+
 	pos += FRTOS_snprintf_P( &ctl_printfBuff[pos],sizeof(ctl_printfBuff),PSTR("\r\n"));
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 
@@ -315,6 +330,47 @@ uint8_t pos;
 	}
 	pos += FRTOS_snprintf_P( &ctl_printfBuff[pos],sizeof(ctl_printfBuff),PSTR(" )\r\n\0"));
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+
+}
+//------------------------------------------------------------------------------------
+static void pv_switch_led_KA( t_onoff action )
+{
+
+	switch ( action ) {
+	case ON:
+		IO_set_led_KA_logicBoard();				// Led de KA de la placa logica
+#ifdef SP5KV5_3CH
+		IO_set_led_KA_analogBoard(); 			// Idem. analog board
+#endif /* SP5KV5_3CH */
+		break;
+
+	case OFF:
+		IO_clear_led_KA_logicBoard();
+#ifdef SP5KV5_3CH
+	    IO_clear_led_KA_analogBoard();
+#endif /* SP5KV5_3CH */
+	    break;
+	}
+
+
+}
+//------------------------------------------------------------------------------------
+static void pv_switch_led_MODEM( t_onoff action )
+{
+
+	switch ( action ) {
+	case ON:
+#ifdef SP5KV5_3CH
+		IO_set_led_MODEM_analogBoard();
+#endif /* SP5KV5_3CH */
+		break;
+
+	case OFF:
+#ifdef SP5KV5_3CH
+		IO_clear_led_MODEM_analogBoard();
+#endif /* SP5KV5_3CH */
+	    break;
+	}
 
 }
 //------------------------------------------------------------------------------------
@@ -395,10 +451,12 @@ UBaseType_t uxHighWaterMark;
 	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("AIN: %03d,%03d,[%03d]\r\n\0"),tkAIn_STACK_SIZE,uxHighWaterMark, ( tkAIn_STACK_SIZE - uxHighWaterMark));
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
 
+#ifdef SP5KV5_3CH
 	// tkOutputs
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkOutputs );
 	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("OUT: %03d,%03d,[%03d]\r\n\0"),tkOutputs_STACK_SIZE, uxHighWaterMark, ( tkOutputs_STACK_SIZE - uxHighWaterMark));
 	FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+#endif
 
 	//kGprsTX
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkGprs );

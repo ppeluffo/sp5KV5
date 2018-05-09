@@ -19,6 +19,8 @@
 #include "FRTOS-IO.h"
 #include "FRTOS_stdio.h"
 
+#include "sp5KV5_defs.h"
+
 //#define ff_DEBUG
 
 #ifdef ff_DEBUG

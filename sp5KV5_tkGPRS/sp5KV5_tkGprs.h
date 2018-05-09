@@ -8,7 +8,7 @@
 #ifndef SP5KV5_TKGPRS_SP5KV5_TKGPRS_H_
 #define SP5KV5_TKGPRS_SP5KV5_TKGPRS_H_
 
-#include "../sp5KV5.h"
+#include "sp5KV5.h"
 
 char gprs_printfBuff[CHAR256];
 

@@ -18,7 +18,10 @@ static void pv_snprintfP_OK(void );
 static void pv_snprintfP_ERR(void);
 static uint8_t pv_makeArgv(void);
 
-static void pv_cmd_wrOUT8814(void);
+#ifdef SP5KV5_3CH
+	static void pv_cmd_wrOUT8814(void);
+#endif /* SP5KV5_3CH */
+
 bool pv_cmdWrDebugLevel(char *s);
 static void pv_readMemory(void);
 
@@ -115,19 +118,28 @@ static void cmdHelpFunction(void)
 	if (!strcmp_P( strupr(argv[1]),PSTR("WRITE\0"))) {
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-write\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+#ifdef SP5KV5_3CH
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  consigna {diurna|nocturna}, outputs {x,x}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  out sleep|reset|phase(A/B)|enable(A/B) {0|1}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  out pulse (A/B) (+/-) (ms)\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  termpwr {0|1},sensorpwr {0|1},analogpwr {0|1}\r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
+#endif /* SP5KV5_3CH */
+
+#ifdef SP5KV5_8CH
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  ina {0,1,2} conf {value}\r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+#endif /* SP5KV5_8CH */
+
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  mcp {devId}{regAddr}{regValue}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  clearQ {0|1}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  ee addr string\r\n\0"));
-		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  termpwr {0|1},sensorpwr {0|1},analogpwr {0|1}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  gprs cmd {atcmd}, redial, (pwr|sw) {on|off}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -137,17 +149,24 @@ static void cmdHelpFunction(void)
 	else if (!strcmp_P( strupr(argv[1]), PSTR("READ\0"))) {
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "-read\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  mcp {0|1} regAddr\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  mcp id regAddr\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  din {0|1}\r\n\0"));
+
+#ifdef SP5KV5_8CH
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  ina {0,1,2} {conf|chXshv|chXbusv|mfid|dieid}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  rtc, adc {ch}, frame\r\n\0"));
+#endif /* SP5KV5_8CH */
+
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  an chId\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR( "  ee {addr}{lenght}\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  din chId\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  frame,memory\r\n\0"));
+
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  ee {addr} {lenght}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  gprs (rsp,dcd)\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  rtc, frame, memory\r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  gprs (rsp,dcd)\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	}
 
@@ -165,20 +184,28 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  rtc YYMMDDhhmm\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerpoll, timerdial, dlgid, gsmband, terminal {on|off} \r\n\0"));
-		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerpoll, dlgid, gsmband\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  debug {none,mem,gprs,analog,digital,outputs} \r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  A{0..2} aname imin imax mmin mmax\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  analog chId aname imin imax mmin mmax\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  D{0..1} dname magp\r\n\0"));
+#ifdef SP5KV5_8CH
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  cspan {0..8} {value}\r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+#endif /* SP5KV5_8CH */
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  digital chId dname magp\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  apn, roaming {on|off}, port, ip, script, passwd\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+#ifdef SP5KV5_3CH
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerdial, terminal {on|off} \r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  outputs {off}|{normal o0 o1}|{consigna hhmm_dia hhmm_noche}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+#endif /* SP5KV5_3CH */
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  defaults \r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  save\r\n\0"));
@@ -189,7 +216,11 @@ static void cmdHelpFunction(void)
 	else if (!strcmp_P( strupr(argv[1]), PSTR("KILL\0"))) {
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("-kill \r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+#ifdef SP5KV5_3CH
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  {analog,digital,outputs,gprstx,gprsrx}\r\n\0"));
+#else
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  {analog,digital,gprstx,gprsrx}\r\n\0"));
+#endif /* SP5KV5_3CH */
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	} else {
@@ -263,6 +294,7 @@ static void cmdKillFunction(void)
 		return;
 	}
 
+#ifdef SP5KV5_3CH
 	// KILL OUTPUTS
 	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0"))) {
 		vTaskSuspend( xHandle_tkOutputs );
@@ -270,6 +302,7 @@ static void cmdKillFunction(void)
 		pv_snprintfP_OK();
 		return;
 	}
+#endif /* SP5KV5_3CH */
 
 	// KILL ANALOG
 	if (!strcmp_P( strupr(argv[1]), PSTR("ANALOG\0"))) {
@@ -446,6 +479,7 @@ StatBuffer_t pxFFStatBuffer;
 	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  memory: wrPtr=%d,rdPtr=%d,delPtr=%d,Free=%d,4del=%d \r\n"), pxFFStatBuffer.HEAD,pxFFStatBuffer.RD, pxFFStatBuffer.TAIL,pxFFStatBuffer.rcdsFree,pxFFStatBuffer.rcds4del );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
+#ifdef SP5KV5_3CH
 	// PWR SAVE:
 	if ( systemVars.pwrSave.modo ==  modoPWRSAVE_OFF ) {
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  pwrsave=off\r\n\0"));
@@ -454,11 +488,13 @@ StatBuffer_t pxFFStatBuffer;
 	}
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
-	/* Timers */
-	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerPoll: [%ds]\r\n\0"),systemVars.timerPoll );
+	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerDial: [%lus]: %li\r\n\0"), systemVars.timerDial, pub_gprs_readTimeToNextDial() );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
-	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerDial: [%lus]: %li\r\n\0"), systemVars.timerDial, pub_gprs_readTimeToNextDial() );
+#endif /* SP5KV5_3CH */
+
+	/* Timers */
+	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerPoll: [%ds]\r\n\0"),systemVars.timerPoll );
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 	/* Debug */
@@ -471,13 +507,19 @@ StatBuffer_t pxFFStatBuffer;
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("gprs" ));
 	} else if ( systemVars.debugLevel == D_MEM) {
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("memory" ));
+
+#ifdef SP5KV5_3CH
 	} else if ( systemVars.debugLevel == D_OUTPUTS) {
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("outputs" ));
+#endif /* SP5KV5_3CH */
+
 	} else if ( systemVars.debugLevel == D_DIGITAL) {
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("digital" ));
 	}
 	FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
+#ifdef SP5KV5_3CH
 
 	// TERMINAL FIXED ON
 	if ( systemVars.terminal_on ) {
@@ -522,6 +564,7 @@ StatBuffer_t pxFFStatBuffer;
 	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  batt{0-15V}\r\n\0"));
 	FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
+
 	/* Configuracion de canales analogicos */
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  a%d{%d-%dmA/%.02f %.02f}(%s)\r\n\0"),channel, systemVars.Imin[channel],systemVars.Imax[channel],systemVars.Mmin[channel],systemVars.Mmax[channel], systemVars. aChName[channel] );
@@ -532,6 +575,24 @@ StatBuffer_t pxFFStatBuffer;
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  d%d{%.02f p/p} (%s)\r\n\0"), channel, systemVars.magPP[channel],systemVars.dChName[channel]);
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 	}
+#endif /* SP5KV5_3CH */
+
+#ifdef SP5KV5_8CH
+
+	/* Configuracion de canales analogicos */
+	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  a%d{%d-%dmA/%.02f,%.02f} [%d],%s\r\n\0"),channel, systemVars.Imin[channel],systemVars.Imax[channel],systemVars.Mmin[channel],systemVars.Mmax[channel],systemVars.coef_calibracion[channel],systemVars.aChName[channel] );
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	}
+
+	/* Configuracion de canales digitales */
+	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  d%d{%s}\r\n\0"),channel, systemVars.dChName[channel] );
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+	}
+
+
+#endif /* SP5KV5_8CH */
 
 	/* VALUES --------------------------------------------------------------------------------------- */
 	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR(">Values:\r\n\0"));
@@ -544,9 +605,7 @@ static void cmdReadFunction(void)
 {
 char datetime[24];
 bool retS = false;
-uint16_t adcRetValue = 9999;
 uint8_t regValue;
-uint8_t pin;
 
 	pv_makeArgv();
 
@@ -561,7 +620,6 @@ uint8_t pin;
  		pub_debug_print_stack_watermarks();
  		return;
  	}
-
 
  	// WDT
  	if (!strcmp_P( strupr(argv[1]), PSTR("WDT\0"))) {
@@ -583,19 +641,6 @@ uint8_t pin;
 		return;
 	}
 
-	// ADC
-	// read adc channel
-	if (!strcmp_P( strupr(argv[1]), PSTR("ADC\0"))) {
-		retS = ADC_test_read(argv[2], &adcRetValue );
-		if ( retS ) {
-			FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("OK\r\nACD[%d]=%d\r\n\0"), atoi(argv[2]), adcRetValue );
-		} else {
-			FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("ERROR\r\n\0"));
-		}
-		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		return;
-	}
-
 	// RTC
 	if (!strcmp_P( strupr(argv[1]), PSTR("RTC\0"))) {
 		if ( RTC_date_to_str( datetime, sizeof(datetime) ) != -1 ) {
@@ -614,9 +659,12 @@ uint8_t pin;
 		case 0:
 			retS = MCP_read( MCP0_ADDR, atoi(argv[3]), &regValue );
 			break;
+#ifdef SP5KV5_3CH
 		case 1:
 			retS = MCP_read( MCP1_ADDR, atoi(argv[3]), &regValue );
 			break;
+#endif /* SP5KV5_3CH */
+
 		}
 
 		if (retS ) {
@@ -631,33 +679,16 @@ uint8_t pin;
 	// DIN
 	// read din 0|1
 	if (!strcmp_P( strupr(argv[1]), PSTR("DIN\0"))) {
-		switch( atoi(argv[2] )) {
-		case 0:
-			retS = IO_read_din0(&pin);
-			break;
-		case 1:
-			retS = IO_read_din1(&pin);
-			break;
-		default:
-			retS = false;
-		}
-
-		if (retS ) {
-			FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("OK\r\nDIN%d=%d\r\n\0"),atoi(argv[2]),pin);
-		} else {
-			FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("ERROR\r\n\0"));
-		}
-		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+		pub_digital_read_Inputs( atoi(argv[2] ) );
 		return;
 	}
 
- 	// TERMSW
- 	if (!strcmp_P( strupr(argv[1]), PSTR("TERMSW\0"))) {
- 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("OK\r\nTERMSW=%d\r\n\0"),IO_read_terminal_pin() );
- 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
- 		return;
-
- 	}
+	// AN
+	// read an id
+	if (!strcmp_P( strupr(argv[1]), PSTR("AN\0"))) {
+		pub_analog_read_Inputs( atoi(argv[2] ) );
+		return;
+	}
 
 	// FRAME
 	if (!strcmp_P( strupr(argv[1]), PSTR("FRAME\0"))) {
@@ -677,6 +708,28 @@ uint8_t pin;
 		pv_cmd_rwGPRS(RD_CMD);
 		return;
 	}
+
+#ifdef SP5KV5_3CH
+ 	// TERMSW
+ 	if (!strcmp_P( strupr(argv[1]), PSTR("TERMSW\0"))) {
+ 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("OK\r\nTERMSW=%d\r\n\0"),IO_read_terminal_pin() );
+ 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+ 		return;
+
+ 	}
+
+#endif /* SP5KV5_3CH */
+
+#ifdef SP5KV5_8CH
+
+	// INA
+ 	// read ina id regName
+	if (!strcmp_P( strupr(argv[1]), PSTR("INA\0"))) {
+		pub_analog_read_INA3221(argv[2], argv[3]);
+		return;
+	}
+
+#endif /* SP5KV5_8CH */
 
 	// CMD NOT FOUND
 	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("ERROR\r\nCMD NOT DEFINED\r\n"));
@@ -816,33 +869,16 @@ uint8_t outputs_mode;
 	}
 
 	// CANALES ANALOGICOS
-	if (!strcmp_P( strupr(argv[1]), PSTR("A0\0"))) {
-		retS = pub_analog_config_channel( 0, argv[2],argv[3],argv[4],argv[5],argv[6]);
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-		return;
-	}
-
-	if (!strcmp_P( strupr(argv[1]), PSTR("A1\0"))) {
-		retS = pub_analog_config_channel( 1, argv[2],argv[3],argv[4],argv[5],argv[6]);
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-		return;
-	}
-
-	if (!strcmp_P( strupr(argv[1]), PSTR("A2\0"))) {
-		retS = pub_analog_config_channel( 2, argv[2],argv[3],argv[4],argv[5],argv[6]);
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-		return;
-	}
-
-	// CANALES DIGITALES
-	if (!strcmp_P( strupr(argv[1]), PSTR("D0\0"))) {
-		pub_digital_config_channel( 0, argv[2],argv[3]);
+	// analog {0..8} aname imin imax mmin mmax
+	if (!strcmp_P( strupr(argv[1]), PSTR("ANALOG\0"))) {
+		pub_analog_config_channel( atoi(argv[2]), argv[3], argv[4], argv[5], argv[6], argv[7] );
 		pv_snprintfP_OK();
 		return;
 	}
 
-	if (!strcmp_P( strupr(argv[1]), PSTR("D1\0"))) {
-		pub_digital_config_channel( 1, argv[2],argv[3]);
+	// CANALES DIGITALES
+	if (!strcmp_P( strupr(argv[1]), PSTR("DIGITAL\0"))) {
+		pub_digital_config_channel( atoi(argv[2]),argv[3],argv[4]);
 		pv_snprintfP_OK();
 		return;
 	}
@@ -851,6 +887,35 @@ uint8_t outputs_mode;
 	if (!strcmp_P( strupr(argv[1]), PSTR("TIMERPOLL\0"))) {
 		retS = pub_analog_config_timerpoll(argv[2]);
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+		return;
+	}
+
+
+	// RTC
+	if (!strcmp_P( strupr(argv[1]), PSTR("RTC\0"))) {
+		retS = RTC_str_to_date(argv[2]);
+		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+		return;
+	}
+
+#ifdef SP5KV5_8CH
+	// CSPAN
+	// Coeficinte de correccion del conversor INA.
+	if (!strcmp_P( strupr(argv[1]), PSTR("CSPAN\0"))) {
+		pub_analog_config_cspan(argv[2], argv[3]);
+		pv_snprintfP_OK();
+		return;
+	}
+
+
+#endif /* SP5KV5_8CH */
+
+#ifdef SP5KV5_3CH
+	// TERMINAL FIXED
+	if (!strcmp_P( strupr(argv[1]), PSTR("TERMINAL\0"))) {
+		if (!strcmp_P( strupr(argv[2]), PSTR("ON"))) { systemVars.terminal_on = true; }
+		if (!strcmp_P( strupr(argv[2]), PSTR("OFF"))) { systemVars.terminal_on = false; }
+		pv_snprintfP_OK();
 		return;
 	}
 
@@ -865,21 +930,6 @@ uint8_t outputs_mode;
 	if (!strcmp_P( strupr(argv[1]), PSTR("PWRSAVE\0"))) {
 		if (!strcmp_P( strupr(argv[2]), PSTR( "ON"))) { pub_configPwrSave ( modoPWRSAVE_ON, argv[3], argv[4] ); }
 		if (!strcmp_P( strupr(argv[2]), PSTR("OFF"))) { pub_configPwrSave ( modoPWRSAVE_OFF, argv[3], argv[4] ); }
-		pv_snprintfP_OK();
-		return;
-	}
-
-	// RTC
-	if (!strcmp_P( strupr(argv[1]), PSTR("RTC\0"))) {
-		retS = RTC_str_to_date(argv[2]);
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
-		return;
-	}
-
-	// TERMINAL FIXED
-	if (!strcmp_P( strupr(argv[1]), PSTR("TERMINAL\0"))) {
-		if (!strcmp_P( strupr(argv[2]), PSTR("ON"))) { systemVars.terminal_on = true; }
-		if (!strcmp_P( strupr(argv[2]), PSTR("OFF"))) { systemVars.terminal_on = false; }
 		pv_snprintfP_OK();
 		return;
 	}
@@ -899,6 +949,7 @@ uint8_t outputs_mode;
 		pv_snprintfP_OK();
 		return;
 	}
+#endif /* SP5KV5_3CH */
 
 	// CMD NOT FOUND
 	FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("ERROR\r\nCMD NOT DEFINED\r\n"));
@@ -913,6 +964,7 @@ bool retS = false;
 
 	pv_makeArgv();
 
+#ifdef SP5KV5_3CH
 	// OUT 8814
 	// write out sleep|reset|phase(A/B)|enable(A/B)| {0|1}
 	//       out pulse (A/B) (+/-) (ms)
@@ -941,6 +993,7 @@ bool retS = false;
 		pv_snprintfP_ERR();
 		return;
 	}
+#endif /* SP5KV5_3CH */
 
 	// GPRS
 	// write gprs pwr|sw|rts {on|off}
@@ -957,7 +1010,7 @@ bool retS = false;
 		return;
 	}
 
-
+#ifdef SP5KV5_3CH
 	// termPWR
 	if (!strcmp_P( strupr(argv[1]), PSTR("TERMPWR\0"))) {
 		switch( atoi(argv[2]) ) {
@@ -1030,6 +1083,7 @@ bool retS = false;
 		}
 		return;
 	}
+#endif /* SP5KV5_3CH */
 
 	// MCP
 	// write mcp 0|1|2 addr value
@@ -1038,9 +1092,13 @@ bool retS = false;
 		case 0:
 			retS = MCP_write( MCP0_ADDR, atoi(argv[3]), atoi(argv[4]) );
 			break;
+
+#ifdef SP5KV5_3CH
 		case 1:
 			retS = MCP_write( MCP1_ADDR, atoi(argv[3]), atoi(argv[4]) );
 			break;
+#endif /* SP5KV5_3CH */
+
 		}
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
@@ -1072,10 +1130,12 @@ bool pv_cmdWrDebugLevel(char *s)
 		return(true);
 	}
 
+#ifdef SP5KV5_3CH
 	if ((!strcmp_P( strupr(s), PSTR("OUTPUT")))) {
 		systemVars.debugLevel = D_OUTPUTS;
 		return(true);
 	}
+#endif /* SP5KV5_3CH */
 
 	if ((!strcmp_P( strupr(s), PSTR("GPRS")))) {
 		systemVars.debugLevel = D_GPRS;
@@ -1157,6 +1217,7 @@ uint16_t rcds = 0;
 	}
 }
 //------------------------------------------------------------------------------------
+#ifdef SP5KV5_3CH
 static void pv_cmd_wrOUT8814(void)
 {
 	// write out sleep|reset|phase(A/B)|enable(A/B)| {0|1}
@@ -1272,6 +1333,7 @@ static void pv_cmd_wrOUT8814(void)
 	return;
 
 }
+#endif /* SP5KV5_3CH */
 //------------------------------------------------------------------------------------
 static void pv_cmd_rwGPRS(uint8_t cmd_mode )
 {
@@ -1340,7 +1402,7 @@ static void pv_cmd_rwGPRS(uint8_t cmd_mode )
 			// DCD
 /*			if (!strcmp_P( strupr(argv[2]), PSTR("DCD\0")) ) {
 				pin = IO_read_DCD();
-				snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("DCD=%d\r\n\0"),pin);
+				FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("DCD=%d\r\n\0"),pin);
 				CMD_write(  cmd_printfBuff, sizeof(cmd_printfBuff) );
 				pv_snprintfP_OK();
 				return;

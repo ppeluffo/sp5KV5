@@ -15,6 +15,8 @@
 #include "FRTOS-IO.h"
 #include "sp5K_i2c.h"
 
+#include "sp5KV5_defs.h"
+
 //#define adc_DEBUG
 
 #ifdef adc_DEBUG
@@ -32,8 +34,11 @@
 #define 	ADS7828_CMD_PDMODE2   	0x08	//ADS7828 Mode 2: Ref ON, converter OFF
 #define 	ADS7828_CMD_PDMODE3   	0x0C	//ADS7828 Mode 3: Ref ON, converter ON.
 
+#ifdef SP5KV5_3CH
 bool ADC_read(uint8_t channel, uint16_t *value);
 bool ADC_readDlgCh(uint8_t channel, uint16_t *adc_value);
 bool ADC_test_read( char *s, uint16_t *adcRetValue );
+#endif /* SP5KV5_3CH */
+
 
 #endif /* SRC_SP5KLIBS_L_ADC7828_H_ */

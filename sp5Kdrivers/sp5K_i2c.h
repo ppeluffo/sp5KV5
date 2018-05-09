@@ -18,6 +18,8 @@
 
 #include "FreeRTOS.h"
 
+#include "sp5KV5_defs.h"
+
 #define SCL		0
 #define SDA		1
 #define I2C_MAXTRIES	5

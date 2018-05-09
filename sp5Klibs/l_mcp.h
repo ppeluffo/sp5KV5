@@ -20,6 +20,8 @@
 #include "FRTOS-IO.h"
 #include "sp5K_i2c.h"
 
+#include "sp5KV5_defs.h"
+
 //#define mcp_DEBUG
 
 #ifdef mcp_DEBUG

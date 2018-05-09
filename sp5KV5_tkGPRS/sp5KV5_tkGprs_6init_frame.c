@@ -10,16 +10,17 @@
 bool pv_send_init_frame(void);
 bool pv_process_init_response(void);
 static void pv_TX_init_frame(void);
+static void pv_process_server_clock(void);
 static void pv_reconfigure_params(void);
 
-static void pv_process_server_clock(void);
-static uint8_t pv_process_pwrSave(void);
-static uint8_t pv_process_timerPoll(void);
-static uint8_t pv_process_timerDial(void);
-static uint8_t pv_process_digitalCh(uint8_t channel);
-static uint8_t pv_process_AnalogCh(uint8_t channel);
-//static uint8_t pv_process_tilt(void);
-static uint8_t pv_process_Outputs(void);
+#ifdef SP5KV5_3CH
+	static uint8_t pv_process_pwrSave(void);
+	static uint8_t pv_process_timerPoll(void);
+	static uint8_t pv_process_timerDial(void);
+	static uint8_t pv_process_digitalCh(uint8_t channel);
+	static uint8_t pv_process_AnalogCh(uint8_t channel);
+	static uint8_t pv_process_Outputs(void);
+#endif
 
 // La tarea no puede demorar mas de 180s.
 #define WDG_GPRS_TO_INIT	180
@@ -161,8 +162,15 @@ EXIT:
 //------------------------------------------------------------------------------------
 static void pv_TX_init_frame(void)
 {
+	// SP5KV5_3CH
 	// Send Init Frame
 	// GET /cgi-bin/sp5K/sp5K.pl?DLGID=SPY001&PASSWD=spymovil123&&INIT&ALARM&PWRM=CONT&TPOLL=23&TDIAL=234&PWRS=1,1230,2045&A0=pZ,1,20,3,10&D0=qE,3.24&CONS=1,1234,927,1,3 HTTP/1.1
+	// Host: www.spymovil.com
+	// Connection: close\r\r ( no mando el close )
+
+	// SP5KV5_8CH
+	// Send Init Frame
+	// GET /cgi-bin/sp5K8CH.pl?DLGID=SPY001&PASSWD=spymovil123&&INIT&CSQ=75 HTTP/1.1
 	// Host: www.spymovil.com
 	// Connection: close\r\r ( no mando el close )
 
@@ -202,6 +210,8 @@ uint8_t i;
 	memset(gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
 	pos = FRTOS_snprintf_P( gprs_printfBuff ,CHAR256, PSTR("&INIT"));
 
+#ifdef SP5KV5_3CH
+
 	// timerpoll
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&TPOLL=%d"), systemVars.timerPoll);
 
@@ -222,6 +232,7 @@ uint8_t i;
 		// En modo normal no importan los valores de out0,out1 porque son dinamicos.
 		pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&OUTS=2,0,0"));
 	}
+#endif
 
 	// csq
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&CSQ=%d\0"), systemVars.csq);
@@ -238,14 +249,16 @@ uint8_t i;
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
+#ifdef SP5KV5_3CH
+
 	// BODY ( 2a parte) :
 	memset(gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
 	pos = 0;
-
 	// Configuracion de canales analogicos
 	for ( i = 0; i < NRO_ANALOG_CHANNELS; i++) {
 		pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&A%d=%s,%d,%d,%.02f,%.02f"), i,systemVars.aChName[i],systemVars.Imin[i], systemVars.Imax[i], systemVars.Mmin[i], systemVars.Mmax[i]);
 	}
+
 	// Configuracion de canales digitales
 	for ( i = 0; i < NRO_DIGITAL_CHANNELS; i++) {
 		pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&D%d=%s,%.02f"),i,systemVars.dChName[i],systemVars.magPP[i]);
@@ -262,6 +275,7 @@ uint8_t i;
 		FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0") );
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
+#endif /* SP5KV5_3CH */
 
 	// TAIL ( No mando el close ya que espero la respuesta y no quiero que el socket se cierre )
 	memset(gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
@@ -290,6 +304,9 @@ uint8_t saveFlag = 0;
 
 	// Proceso la respuesta del INIT para reconfigurar los parametros
 	pv_process_server_clock();
+
+#ifdef SP5KV5_3CH
+
 	saveFlag += pv_process_timerPoll();
 	saveFlag += pv_process_timerDial();
 	saveFlag += pv_process_pwrSave();
@@ -317,6 +334,8 @@ uint8_t saveFlag = 0;
 			}
 		}
 	}
+#endif
+
 }
 //------------------------------------------------------------------------------------
 static void pv_process_server_clock(void)
@@ -369,6 +388,8 @@ char c;
 
 }
 //------------------------------------------------------------------------------------
+#ifdef SP5KV5_3CH
+
 static uint8_t pv_process_timerPoll(void)
 {
 //	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:TPOLL=600:PWRM=DISC:</h1>
@@ -650,3 +671,5 @@ quit:
 
 }
 //--------------------------------------------------------------------------------------
+
+#endif

@@ -20,8 +20,12 @@ static void pv_trasmitir_dataRecord( void );
 static uint8_t pv_procesar_respuesta(void);
 static void pv_process_response_RESET(void);
 static uint8_t pv_process_response_OK(void);
-static void pv_process_response_OUTS(void);
+
 static bool pv_check_more_Rcds4Del ( void );
+
+#ifdef SP5KV5_3CH
+	static void pv_process_response_OUTS(void);
+#endif
 
 // La tarea se repite para cada paquete de datos. Esto no puede demorar
 // mas de 5 minutos
@@ -289,6 +293,7 @@ StatBuffer_t pxFFStatBuffer;
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%04d%02d%02d,"),Aframe.rtc.year,Aframe.rtc.month,Aframe.rtc.day );
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("%02d%02d%02d"),Aframe.rtc.hour,Aframe.rtc.min, Aframe.rtc.sec );
 
+#ifdef SP5KV5_3CH
 	// Valores analogicos
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR(",%s=%.2f"),systemVars.aChName[channel],Aframe.analogIn[channel] );
@@ -304,6 +309,19 @@ StatBuffer_t pxFFStatBuffer;
 
 	// Bateria
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR(",bt=%.2f"),Aframe.batt );
+#endif /* SP5KV5_3CH */
+
+#ifdef SP5KV5_8CH
+	// Valores analogicos
+	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
+		pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR(",%s=%.02f"),systemVars.aChName[channel],Aframe.analogIn[channel] );
+	}
+
+	// Datos digitales
+	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
+		pos += FRTOS_snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ), PSTR(",%s_L=%d,%s_T=%d"),systemVars.dChName[channel], Aframe.dIn.level[channel], systemVars.dChName[channel], Aframe.dIn.ticks_time_H[channel]);
+	}
+#endif /* SP5KV5_8CH */
 
 	// Paso 3: Trasmito por el modem.
 	pub_gprs_flush_RX_buffer();
@@ -386,6 +404,7 @@ uint8_t recds_procesados = 0;
 			return(0);
 		}
 
+#ifdef SP5KV5_3CH
 		if ( strstr( gprsRx.buffer, "OUTS") != NULL ) {
 			// El sever mando actualizacion de las salidas
 			// Muestro mensaje de respuesta del server.
@@ -396,6 +415,7 @@ uint8_t recds_procesados = 0;
 			}
 			pv_process_response_OUTS();
 		}
+#endif
 
 		if ( strstr( gprsRx.buffer, "RX_OK") != NULL ) {
 			// Datos procesados por el server.
@@ -465,6 +485,8 @@ uint8_t recds_borrados = 0;
 	return(recds_borrados);
 }
 //------------------------------------------------------------------------------------
+#ifdef SP5KV5_3CH
+
 static void pv_process_response_OUTS(void)
 {
 	// Recibi algo del estilo >RX_OK:285:OUTS=1,0.
@@ -510,6 +532,8 @@ uint8_t out_A,out_B;
 	systemVars.outputs.out_B = out_B;
 
 }
+
+#endif
 //------------------------------------------------------------------------------------
 static bool pv_check_more_Rcds4Del ( void )
 {

@@ -12,6 +12,8 @@
 #include <l_adc7828.h>
 #include <sp5KV5.h>
 
+#ifdef SP5KV5_3CH
+
 //-------------------------------------------------------------------------------------
 bool ADC_read(uint8_t channel, uint16_t *value)
 {
@@ -119,4 +121,6 @@ bool ADC_test_read( char *s, uint16_t *adcRetValue )
 
 }
 //------------------------------------------------------------------------------------
+
+#endif /* SP5KV5_3CH */
 

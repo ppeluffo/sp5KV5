@@ -9,9 +9,10 @@
 // SPV5 LIB
 // --------------------------------------------------------------------------------
 
-#include <l_iopines.h>
+#include <l_iopines_3CH.h>
 #include "sp5KV5.h"
 
+#ifdef SP5KV5_3CH
 //------------------------------------------------------------------------------------
 bool IO_read_pulseInputs( uint8_t *din0, uint8_t *din1 )
 {
@@ -38,6 +39,7 @@ void IO_init_pines(void)
 {
 	// Configuracion de pines:
 	// Los pines del micro que resetean los latches de caudal son salidas.
+
 	sbi(Q_DDR, Q0_CTL_PIN);
 	sbi(Q_DDR, Q1_CTL_PIN);
 
@@ -53,6 +55,7 @@ void IO_init_pines(void)
 	// inicialmente los led quedan en 0
 	sbi(LED_KA_PORT, LED_KA_BIT);
 	sbi(LED_MODEM_PORT, LED_MODEM_BIT);
+
 }
 //------------------------------------------------------------------------------------
 bool IO_read_din0( uint8_t *pin)
@@ -100,3 +103,4 @@ uint8_t regValue;
 	return(retS);
 }
 //------------------------------------------------------------------------------------
+#endif /* SP5KV5_3CH */

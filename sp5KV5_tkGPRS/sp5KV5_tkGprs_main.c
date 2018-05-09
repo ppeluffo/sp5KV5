@@ -23,6 +23,11 @@ void tkGprsTx(void * pvParameters)
 
 	memset(buff_gprs_imei,'\0',IMEIBUFFSIZE);
 
+#ifdef SP5KV5_8CH
+	// Siempre trabaja en modo continuo
+	systemVars.timerDial = 0;		// Continuo
+#endif /* SP5KV5_8CH */
+
 	for( ;; )
 	{
 

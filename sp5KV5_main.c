@@ -241,12 +241,15 @@ static void pv_initMPU(void)
 void vApplicationIdleHook( void )
 {
 
+#ifdef SP5KV5_3CH
+
 	for(;;) {
 
 		if ( ( pub_gprs_modem_prendido() == false ) && ( pub_control_terminal_is_on() == false) && ( MODO_DISCRETO )) {
 			sleep_mode();
 		}
 	}
+#endif /* SP5KV5_3CH */
 
 }
 //------------------------------------------------------------------------------------

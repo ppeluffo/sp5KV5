@@ -15,6 +15,8 @@
 #include <sp5KV5.h>
 #include "FRTOS-IO.h"
 
+#include "sp5KV5_defs.h"
+
 //#define ee_DEBUG
 
 #ifdef ee_DEBUG

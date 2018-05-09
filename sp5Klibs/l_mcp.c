@@ -353,7 +353,7 @@ static uint8_t modo = 0;
 
 	// INTCON: controlo como comparo para generar la interrupcion.
 	// Con 1, comparo contra el valor fijado en DEFVAL
-	// Con 0 vs. su valor anterior.
+	// Con 0#ifdef SP5KV5_3CH vs. su valor anterior.
 //	val = MCP1_INTCONB;
 //	FreeRTOS_ioctl(&pdI2C,ioctl_I2C_SET_BYTEADDRESS,&val, DEBUG_MCP);
 	//data |= ( BV(MCP1_GPIO_DIN0) | BV(MCP1_GPIO_DIN1) );
@@ -377,6 +377,7 @@ static uint8_t modo = 0;
 		FRTOS_snprintf_P( debug_printfBuff,sizeof(debug_printfBuff),PSTR("MCP1 init !!\r\n\0"));
 	}
 	FreeRTOS_write( &pdUART1, debug_printfBuff, sizeof(debug_printfBuff) );
+
 }
 //------------------------------------------------------------------------------------
 static void pvMCP_checkConfiguration(void)

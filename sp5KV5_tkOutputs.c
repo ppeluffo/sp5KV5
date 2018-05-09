@@ -5,7 +5,13 @@
  *      Author: pablo
  */
 
+
 #include <sp5KV5.h>
+
+// La tarea pasa por el mismo lugar c/25s.
+#define WDG_OUT_TIMEOUT	60
+
+#ifdef SP5KV5_3CH
 
 static char out_printfBuff[CHAR128];	// Buffer de impresion
 
@@ -21,9 +27,6 @@ static void pv_out_init_outputs_normales(void);
 
 static 	uint8_t l_out_A, l_out_B;
 static bool exit_loop_to_reconfigure;
-
-// La tarea pasa por el mismo lugar c/25s.
-#define WDG_OUT_TIMEOUT	60
 
 //------------------------------------------------------------------------------------
 void tkOutputs(void * pvParameters)
@@ -58,6 +61,30 @@ uint8_t timer;
 	}
 }
 //------------------------------------------------------------------------------------
+#endif /* SP5KV5_3CH */
+
+#ifdef SP5KV5_8CH
+//------------------------------------------------------------------------------------
+void tkOutputs(void * pvParameters)
+{
+( void ) pvParameters;
+
+	while ( !startTask )
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+
+
+	for( ;; )
+	{
+
+		pub_control_watchdog_kick(WDG_OUT, WDG_OUT_TIMEOUT);
+		vTaskDelay( ( TickType_t)( 30000 / portTICK_RATE_MS ) );
+	}
+}
+//------------------------------------------------------------------------------------
+#endif /* SP5KV5_8CH */
+
+#ifdef SP5KV5_3CH
+
 static void pv_out_chequear(void)
 {
 
@@ -333,5 +360,7 @@ void pub_output_set_outputs( char id_output, uint8_t value)
 
 }
 //----------------------------------------------------------------------------------------
+
+#endif /* SP5KV5_3CH */
 
 

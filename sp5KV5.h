@@ -8,6 +8,8 @@
 #ifndef SP5K_H_
 #define SP5K_H_
 
+#include "sp5KV5_defs.h"
+
 #include <avr/io.h>			/* include I/O definitions (port names, pin names, etc) */
 //#include <avr/signal.h>		/* include "signal" names (interrupt names) */
 #include <avr/wdt.h>
@@ -28,12 +30,20 @@
 #include <util/delay.h>
 #include <avr/cpufunc.h>
 
-#include <l_adc7828.h>
 #include <l_file.h>
 #include <l_rtc.h>
-#include <l_iopines.h>
 #include <l_mcp.h>
-#include <l_drv8814.h>
+
+#ifdef SP5KV5_3CH
+	#include <l_adc7828.h>
+	#include <l_drv8814.h>
+	#include <l_iopines_3CH.h>
+#endif /* SP5KV5_3CH */
+
+#ifdef SP5KV5_8CH
+	#include <l_iopines_8CH.h>
+	#include <l_ina3221.h>
+#endif /* SP5KV5_8CH */
 
 #include "sp5Klibs/avrlibdefs.h"
 #include "sp5Klibs/avrlibtypes.h"
@@ -54,14 +64,6 @@
 
 // DEFINICION DEL TIPO DE SISTEMA
 //----------------------------------------------------------------------------
-#define SP5K_REV "5.2.0"
-#define SP5K_DATE "@ 20180507"
-
-#define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
-#define SP5K_VERSION "FW:FRTOS8"
-
-#define NRO_ANALOG_CHANNELS		3
-#define NRO_DIGITAL_CHANNELS 	2
 
 #define CHAR64		64
 #define CHAR128	 	128
@@ -121,6 +123,7 @@ wdgStatus_t wdgStatus;
 xSemaphoreHandle sem_SYSVars;
 #define MSTOTAKESYSVARSSEMPH ((  TickType_t ) 10 )
 
+typedef enum { ON = 0, OFF } t_onoff;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
 typedef enum { D_NONE = 0, D_MEM, D_GPRS, D_ANALOG, D_DIGITAL , D_OUTPUTS } t_debug;
 typedef enum { T_APAGADA = 0, T_PRENDIDA = 1 } t_terminalStatus;
@@ -143,6 +146,7 @@ typedef struct {
 	uint8_t min;
 } time_t;
 
+#ifdef SP5KV5_3CH
 typedef struct {
 	uint16_t pulse_count[NRO_DIGITAL_CHANNELS];			// 8
 	float caudal[NRO_DIGITAL_CHANNELS];					// 8
@@ -172,6 +176,23 @@ typedef struct {
 	time_t hora_fin;
 } pwrsave_t;
 
+#endif /* SP5KV5_3CH */
+
+#ifdef SP5KV5_8CH
+
+typedef struct {
+	uint8_t level[NRO_DIGITAL_CHANNELS];		// nivel logico de la entrada
+	uint16_t ticks_time_H[NRO_DIGITAL_CHANNELS];
+} dinData_t;		// 16 bytes
+
+typedef struct {
+	RtcTimeType_t rtc;
+	float analogIn[NRO_ANALOG_CHANNELS];
+	dinData_t dIn;
+} frameData_t;	// 39 bytes
+
+#endif /* SP5KV5_8CH */
+
 typedef struct {
 	// Variables de trabajo.
 	// Tamanio: 302 bytes para 3 canales.
@@ -199,24 +220,33 @@ typedef struct {
 	uint8_t debugLevel;		// Indica que funciones debugear.
 	uint8_t gsmBand;
 
+#ifdef SP5KV5_3CH
+
 	pwrsave_t pwrSave;
+	// Configuracion de canales digitales
+	double magPP[NRO_DIGITAL_CHANNELS];		// pulsos por mt3.
+
+#endif /* SP5KV5_3CH */
 
 	// Nombre de los canales
 	char aChName[NRO_ANALOG_CHANNELS][PARAMNAME_LENGTH];
-	char dChName[2][PARAMNAME_LENGTH];
+	char dChName[NRO_ANALOG_CHANNELS][PARAMNAME_LENGTH];
 
 	// Configuracion de Canales analogicos
+#ifdef SP5KV5_8CH
+	uint16_t coef_calibracion[NRO_ANALOG_CHANNELS];
+#endif /* SP5KV5_8CH */
+
 	uint8_t Imin[NRO_ANALOG_CHANNELS];				// Coeficientes de conversion de I->magnitud (presion)
 	uint8_t Imax[NRO_ANALOG_CHANNELS];
 	double Mmin[NRO_ANALOG_CHANNELS];
 	double Mmax[NRO_ANALOG_CHANNELS];
 
-	// Configuracion de canales digitales
-	double magPP[NRO_DIGITAL_CHANNELS];		// pulsos por mt3.
-
 	bool roaming;
 
+#ifdef SP5KV5_3CH
 	outputs_t outputs;
+#endif /* SP5KV5_3CH */
 
 } systemVarsType;	// 315 bytes
 
@@ -229,7 +259,11 @@ systemVarsType systemVars,tmpSV;
 //------------------------------------------------------------------------------------
 // utils
 void pub_uarts_ctl(uint8_t cmd);
+
+#ifdef SP5KV5_3CH
 void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
+#endif /* SP5KV5_3CH */
+
 bool pub_loadSystemParams(void);
 
 bool pub_saveSystemParams(void);
@@ -245,6 +279,12 @@ bool pub_analog_config_timerpoll(char *s_tPoll);
 void pub_analog_print_frame(frameData_t *dframe);
 void pub_analog_read_frame(bool saveInBD );
 frameData_t *pub_analog_get_data_frame_ptr(void);
+void pub_analog_read_Inputs( uint8_t channel );
+
+#ifdef SP5KV5_8CH
+	void pub_analog_config_cspan(char *s_channel, char *s_span);
+	void pub_analog_read_INA3221(char *s_inaId, char *s_inaReg);
+#endif /* SP5KV5_8CH */
 
 // tkControl
 bool pub_control_terminal_is_on(void);
@@ -256,6 +296,7 @@ void pub_debug_print_stack_watermarks(void);
 void pub_digital_read_counters( dinData_t *dIn );
 void pub_digital_load_defaults(void);
 bool pub_digital_config_channel( uint8_t channel, char *chName, char *s_magPP );
+void pub_digital_read_Inputs( uint8_t channel);
 
 // tkGprs
 int32_t pub_gprs_readTimeToNextDial(void);
@@ -266,11 +307,13 @@ void pub_gprs_print_RX_Buffer(void);
 void pub_gprs_print_RX_response(void);
 
 // tkOutputs
-void pub_outputs_load_defaults(void);
-void pub_outputs_config( uint8_t param0, char *param1, char *param2 );
-void pub_output_set_consigna_diurna(void);
-void pub_output_set_consigna_nocturna(void);
-void pub_output_set_outputs( char id_output, uint8_t value);
+#ifdef SP5KV5_3CH
+	void pub_outputs_load_defaults(void);
+	void pub_outputs_config( uint8_t param0, char *param1, char *param2 );
+	void pub_output_set_consigna_diurna(void);
+	void pub_output_set_consigna_nocturna(void);
+	void pub_output_set_outputs( char id_output, uint8_t value);
+#endif /* SP5KV5_3CH */
 
 char debug_printfBuff[CHAR64];
 

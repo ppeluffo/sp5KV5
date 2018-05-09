@@ -8,6 +8,7 @@
 #include "l_drv8814.h"
 #include <ctype.h>
 
+#ifdef SP5KV5_3CH
 //------------------------------------------------------------------------------------
 bool DRV8814_test_pulse(char *s0, char *s1, char *s2)
 {
@@ -96,3 +97,4 @@ void DRV8814_pulse(char channel, char phase, uint16_t pulse_width)
 	IO_clr_RES();
 }
 //------------------------------------------------------------------------------------
+#endif

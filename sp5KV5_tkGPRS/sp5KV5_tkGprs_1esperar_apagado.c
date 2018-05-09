@@ -141,9 +141,12 @@ static bool pv_check_inside_pwrSave(void)
 	// En caso afirmativo, seteo el tiempo en 10mins ( 600s )
 	// En caso negativo, lo seteo en systemVars.timerDial
 
+bool insidePwrSave_flag = false;
+
+#ifdef SP5KV5_3CH
+
 RtcTimeType_t rtcDateTime;
 uint16_t now, pwr_save_start, pwr_save_end ;
-bool insidePwrSave_flag = false;
 
 	// Estoy en modo PWR_DISCRETO con PWR SAVE ACTIVADO
 	if ( ( MODO_DISCRETO ) && ( systemVars.pwrSave.modo == modoPWRSAVE_ON )) {
@@ -183,6 +186,8 @@ EXIT:
 		}
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
+
+#endif
 
 	return(insidePwrSave_flag);
 

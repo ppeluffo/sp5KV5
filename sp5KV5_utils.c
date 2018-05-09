@@ -87,6 +87,7 @@ uint32_t tdial;
 	return(true);
 }
 //----------------------------------------------------------------------------------------
+#ifdef SP5KV5_3CH
 void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 {
 	// Recibe como parametros el modo ( 0,1) y punteros a string con las horas de inicio y fin del pwrsave
@@ -103,6 +104,7 @@ void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 	xSemaphoreGive( sem_SYSVars );
 
 }
+#endif /* SP5KV5_3CH */
 //----------------------------------------------------------------------------------------
 bool pub_saveSystemParams(void)
 {
@@ -185,7 +187,7 @@ void pub_loadDefaults(void)
 	strncpy_P(systemVars.dlgId, PSTR("DEF400\0"),DLGID_LENGTH);
 	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
 	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
-	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
+	strncpy_P(systemVars.apn, PSTR("SPYMOVIL.VPNANTEL\0"),APN_LENGTH);
 
 	systemVars.csq = 0;
 	systemVars.dbm = 0;
@@ -193,20 +195,23 @@ void pub_loadDefaults(void)
 	systemVars.ri = 0;
 	systemVars.terminal_on = false;
 
-	strncpy_P(systemVars.apn, PSTR("SPYMOVIL.VPNANTEL\0"),APN_LENGTH);
 	systemVars.roaming = false;
 
 	// DEBUG
 	systemVars.debugLevel = D_NONE;
-
-	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),IP_LENGTH);
-	systemVars.timerDial = 1800;		// Transmito c/3 hs.
 
 	// Analogico
 	pub_analog_load_defaults();
 
 	// digital
 	pub_digital_load_defaults();
+
+#ifdef SP5KV5_3CH
+
+	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
+	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),IP_LENGTH);
+
+	systemVars.timerDial = 1800;		// Transmito c/3 hs.
 
 	// Salidas:
 	pub_outputs_load_defaults();
@@ -217,8 +222,15 @@ void pub_loadDefaults(void)
 	systemVars.pwrSave.hora_start.min = 30;
 	systemVars.pwrSave.hora_fin.hour = 5;
 	systemVars.pwrSave.hora_fin.min = 30;
+#endif /* SP5KV5_3CH */
 
+#ifdef SP5KV5_8CH
+	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K8CH.pl\0"),SCRIPT_LENGTH);
+	strncpy_P(systemVars.server_ip_address, PSTR("192.168.1.9\0"),IP_LENGTH);
 
+	systemVars.timerDial = 0;		// Continuo
+
+#endif /* SP5KV5_8CH */
 }
 //------------------------------------------------------------------------------------
 void pub_reset(void)
