@@ -188,14 +188,23 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  debug {none,mem,gprs,analog,digital,outputs} \r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  analog chId aname imin imax mmin mmax\r\n\0"));
+
+#ifdef SP5KV5_3CH
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  analog {0..2} aname imin imax mmin mmax\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  digital {0..1} dname magp\r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+#endif /* SP5KV5_3CH */
+
 #ifdef SP5KV5_8CH
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  cspan {0..8} {value}\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  analog {0..7} aname imin imax mmin mmax\r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  cspan {0..7} {value}\r\n\0"));
+		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  digital {0..3} dname magp\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 #endif /* SP5KV5_8CH */
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  digital chId dname magp\r\n\0"));
-		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
+
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  apn, roaming {on|off}, port, ip, script, passwd\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 #ifdef SP5KV5_3CH
@@ -871,15 +880,21 @@ uint8_t outputs_mode;
 	// CANALES ANALOGICOS
 	// analog {0..8} aname imin imax mmin mmax
 	if (!strcmp_P( strupr(argv[1]), PSTR("ANALOG\0"))) {
-		pub_analog_config_channel( atoi(argv[2]), argv[3], argv[4], argv[5], argv[6], argv[7] );
-		pv_snprintfP_OK();
+		if ( pub_analog_config_channel( atoi(argv[2]), argv[3], argv[4], argv[5], argv[6], argv[7] ) ) {
+			pv_snprintfP_OK();
+		} else {
+			pv_snprintfP_ERR();
+		}
 		return;
 	}
 
 	// CANALES DIGITALES
 	if (!strcmp_P( strupr(argv[1]), PSTR("DIGITAL\0"))) {
-		pub_digital_config_channel( atoi(argv[2]),argv[3],argv[4]);
-		pv_snprintfP_OK();
+		if ( pub_digital_config_channel( atoi(argv[2]),argv[3],argv[4]) ) {
+			pv_snprintfP_OK();
+		} else {
+			pv_snprintfP_ERR();
+		}
 		return;
 	}
 

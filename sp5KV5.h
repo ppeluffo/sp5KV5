@@ -150,7 +150,7 @@ typedef struct {
 typedef struct {
 	uint16_t pulse_count[NRO_DIGITAL_CHANNELS];			// 8
 	float caudal[NRO_DIGITAL_CHANNELS];					// 8
-	uint8_t level0;										// El canal tilt es el unico que vemos el nivel
+	uint8_t level[NRO_DIGITAL_CHANNELS];				// El canal tilt es el unico que vemos el nivel
 } dinData_t;		// 16 bytes
 
 typedef struct {

@@ -31,18 +31,15 @@ static void pv_digital_init(void);
 static char dIn_printfBuff[CHAR128];	// Buffer de impresion
 
 #ifdef SP5KV5_3CH
-
 static void pv_procesar_caudales(uint8_t channel);
 bool pv_procesar_pulso(uint8_t channel);
-
 #endif /* SP5KV5_3CH */
 
 #ifdef SP5KV5_8CH
+static uint16_t total_ticks;
+#endif /* SP5KV5_8CH */
 
 dinData_t pv_Qdata;
-static uint16_t total_ticks;
-
-#endif /* SP5KV5_8CH */
 
 // La tarea pasa por el mismo lugar c/100ms.
 #define WDG_DIN_TIMEOUT	10
@@ -93,7 +90,6 @@ uint8_t i;
 	pv_clearQ();
 
 #ifdef SP5KV5_3CH
-
 	for ( i = 0; i < NRO_DIGITAL_CHANNELS; i++ ) {
 		pv_Qdata.level[i] = 0;
 		pv_Qdata.pulse_count[i] = 0;
@@ -296,6 +292,11 @@ float ajuste_ticks = systemVars.timerPoll * 10 / total_ticks;
 //------------------------------------------------------------------------------------
 bool pub_digital_config_channel( uint8_t channel, char *chName, char *s_magPP )
 {
+
+	if ( ( channel < 0) || ( channel >= NRO_DIGITAL_CHANNELS ) ) {
+		return(false);
+	}
+
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
 		taskYIELD();
 

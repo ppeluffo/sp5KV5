@@ -1,4 +1,5 @@
 /*
+ /*
  *  sp5KFRTOS_mcp.c
  *
  *  Created on: 01/11/2013
@@ -308,7 +309,8 @@ static uint8_t modo = 0;
 	// Los dejo en 0 para ahorrar ma.
 	val = MCP1_GPPUA;
 	FreeRTOS_ioctl(&pdI2C,ioctl_I2C_SET_BYTEADDRESS,&val, DEBUG_MCP);
-	data = 0x00; // 1111 1111
+	//data = 0x00; // 1111 1111
+	data = 0xF8; // 1111 1000
 	xBytes = sizeof(data);
 	xReturn = FreeRTOS_write(&pdI2C, &data, xBytes);
 
@@ -406,6 +408,3 @@ uint8_t regValue;
 		taskYIELD();
 	}
 }
-//------------------------------------------------------------------------------------
-
-

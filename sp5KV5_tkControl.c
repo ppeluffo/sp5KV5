@@ -210,7 +210,13 @@ static void  pv_check_daily_reset(void)
 	// Todos los dias debo resetearme para restaturar automaticamente posibles
 	// problemas.
 
-static uint32_t ticks_to_reset = 86400; // Segundos en 1 dia.
+#ifdef SP5KV5_3CH
+	static uint32_t ticks_to_reset = 86400; // Segundos en 1 dia.
+#endif /* SP5KV5_3CH */
+#ifdef SP5KV5_8CH
+	static uint32_t ticks_to_reset = 43200; // Se resetea c/12 hs.
+#endif /* SP5KV5_8CH */
+
 
 	while ( --ticks_to_reset > 0 ) {
 		return;

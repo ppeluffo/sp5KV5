@@ -305,7 +305,7 @@ StatBuffer_t pxFFStatBuffer;
 	}
 
 	// Nivel digital del canal 0.
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ), PSTR(",L0=%d"), Aframe.dIn.level0 );
+	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ), PSTR(",L0=%d"), Aframe.dIn.level[0] );
 
 	// Bateria
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR(",bt=%.2f"),Aframe.batt );

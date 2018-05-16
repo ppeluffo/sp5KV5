@@ -49,7 +49,12 @@ uint16_t bauddiv;
 		outb(UCSR1A, BV(U2X0));
 		break;
 	case pUART1:
+#ifdef SP5KV5_3CH
 		bauddiv = 103;					// Console 9600
+#endif /* SP5KV5_3CH */
+#ifdef SP5KV5_8CH
+		bauddiv = 8;					// Console 115200
+#endif /* SP5KV5_8CH */
 		outb(UBRR1L, bauddiv);
 		outb(UBRR1H, bauddiv>>8);
 		outb(UCSR1B, BV(RXCIE1)| BV(RXEN1)|BV(TXEN1));

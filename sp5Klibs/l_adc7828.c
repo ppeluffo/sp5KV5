@@ -80,6 +80,7 @@ bool retS = false;
 //	status = pvADS7828_write( &ads7828CmdByte);
 
 	retS = true;
+
 quit:
 	// Y libero el semaforo.
 	FreeRTOS_ioctl(&pdI2C,ioctlRELEASE_BUS_SEMPH, NULL, DEBUG_ADC);

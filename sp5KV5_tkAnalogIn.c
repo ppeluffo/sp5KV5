@@ -405,10 +405,10 @@ uint16_t tpoll;
 //------------------------------------------------------------------------------------
 bool pub_analog_config_channel( uint8_t channel, char *chName, char *s_iMin, char *s_iMax, char *s_mMin, char *s_mMax )
 {
-	// p1 = name, p2 = iMin, p3 = iMax, p4 = mMin, p5 = mMax
 
-	FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DEBUG_1: ch=%d, name=%s, imin=%d, imax=%s, mmin=%.02f, mmax=%.02f, \r\n\0"), channel, chName, atoi(s_iMin), atoi(s_iMax), atof(s_mMin), atof(s_mMax)    );
-	FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
+	if ( ( channel < 0) || ( channel >= NRO_ANALOG_CHANNELS ) ) {
+		return(false);
+	}
 
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
 		taskYIELD();
@@ -424,9 +424,6 @@ bool pub_analog_config_channel( uint8_t channel, char *chName, char *s_iMin, cha
 	if ( s_mMax != NULL ) {	systemVars.Mmax[channel] = atof(s_mMax); }
 
 	xSemaphoreGive( sem_SYSVars );
-
-	FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff),PSTR("DEBUG_2: ch=%d, name=%s, imin=%d, imax=%s, mmin=%.02f, mmax=%.02f, \r\n\0"), channel, systemVars.aChName[channel], systemVars.Imin[channel], systemVars.Imax[channel], systemVars.Mmin[channel], systemVars.Mmax[channel]    );
-	FreeRTOS_write( &pdUART1, aIn_printfBuff, sizeof(aIn_printfBuff) );
 
 	return(true);
 
@@ -525,7 +522,7 @@ uint8_t channel;
 
 #ifdef SP5KV5_3CH
 	// Agrego el canal digital de nivel 0.
-	pv_data_frame.dIn.level0 = IO_read_dinL0_pin();
+	pv_data_frame.dIn.level[0] = IO_read_dinL0_pin();
 
 	// Agrego la bateria
 	pv_data_frame.batt = rAIn[3];
@@ -584,7 +581,7 @@ uint16_t pos = 0;
 	}
 
 	// Nivel digital del canal 0.
-	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",L0=%d"), dframe->dIn.level0 );
+	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",L0=%d"), dframe->dIn.level[0] );
 
 	// Bateria
 	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",bt=%.02f"),dframe->batt );
@@ -615,9 +612,9 @@ void pub_analog_read_Inputs( uint8_t channel )
 	bool retS = false;
 	uint16_t adcRetValue = 9999;
 
-	retS = ADC_test_read(argv[2], &adcRetValue );
+	retS = ADC_test_read(channel, &adcRetValue );
 	if ( retS ) {
-		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff), PSTR("OK\r\nACD[%d]=%d\r\n\0"), atoi(argv[2]), adcRetValue );
+		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff), PSTR("OK\r\nACD[%d]=%d\r\n\0"), channel, adcRetValue );
 	} else {
 		FRTOS_snprintf_P( aIn_printfBuff,sizeof(aIn_printfBuff), PSTR("ERROR\r\n\0"));
 	}
