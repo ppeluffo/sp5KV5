@@ -9,7 +9,7 @@
 #define SRC_SP5KV5_DEFS_H_
 
 #define SP5K_REV "5.2.0"
-#define SP5K_DATE "@ 20180516"
+#define SP5K_DATE "@ 20180517"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"

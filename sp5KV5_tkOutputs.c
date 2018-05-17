@@ -126,7 +126,6 @@ RtcTimeType_t rtcDateTime;
 static void pv_out_check_outputs_normales(void)
 {
 
-
 	// Solo cambio las salidas si cambio el systemVars.
 	if ( l_out_A != systemVars.outputs.out_A) {
 		l_out_A = systemVars.outputs.out_A;
@@ -306,8 +305,8 @@ void pub_outputs_config( uint8_t param0, char *param1, char *param2 )
 		break;
 	case OUT_NORMAL:
 		systemVars.outputs.modo = OUT_NORMAL;
-		if ( param1 != NULL ) { ( atoi(param1) == 0 )? ( systemVars.outputs.out_A = 0) : (systemVars.outputs.out_A = 1); }
-		if ( param2 != NULL ) { ( atoi(param2) == 0 )? ( systemVars.outputs.out_B = 0) : (systemVars.outputs.out_B = 1); }
+		systemVars.outputs.out_A = 0;
+		systemVars.outputs.out_B = 0;
 		//pv_out_init_outputs_normales();
 		break;
 	}
@@ -320,9 +319,11 @@ void pub_output_set_consigna_diurna(void)
 {
 	// En consigna diurna la valvula A (JP28) queda abierta y la valvula B (JP2) cerrada.
 	// Aplico un pulso + a la valvula A y un pulso - a la B.
-	DRV8814_test_pulse("A", "+","100");
+//	DRV8814_test_pulse("A", "+","100");
+	DRV8814_open_valve_A();
 	vTaskDelay( ( TickType_t)( 5000 / portTICK_RATE_MS ) );
-	DRV8814_test_pulse("B", "-","100");
+//	DRV8814_test_pulse("B", "+","100");
+	DRV8814_close_valve_B();
 
 	systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
 	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: Aplico Consigna Diurna\r\n\0" ));
@@ -332,9 +333,11 @@ void pub_output_set_consigna_diurna(void)
 void pub_output_set_consigna_nocturna(void)
 {
 
-	DRV8814_test_pulse("A","-","100");
+//	DRV8814_test_pulse("A","-","100");
+	DRV8814_close_valve_A();
 	vTaskDelay( ( TickType_t)( 5000 / portTICK_RATE_MS ) );
-	DRV8814_test_pulse("B", "+","100");
+//	DRV8814_test_pulse("B", "-","100");
+	DRV8814_open_valve_B();
 
 	systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
 	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: Aplico Consigna Nocturna\r\n\0" ));

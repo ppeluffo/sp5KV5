@@ -125,7 +125,7 @@ xSemaphoreHandle sem_SYSVars;
 
 typedef enum { ON = 0, OFF } t_onoff;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
-typedef enum { D_NONE = 0, D_MEM, D_GPRS, D_ANALOG, D_DIGITAL , D_OUTPUTS } t_debug;
+typedef enum { D_NONE = 0, D_MEM, D_GPRS, D_ANALOG, D_DIGITAL , D_OUTPUT } t_debug;
 typedef enum { T_APAGADA = 0, T_PRENDIDA = 1 } t_terminalStatus;
 typedef enum { OUT_OFF = 0, OUT_CONSIGNA, OUT_NORMAL } t_outputs;
 typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;

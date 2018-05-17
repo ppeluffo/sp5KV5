@@ -71,16 +71,16 @@ uint8_t IO_read_terminal_pin(void);
 #define Q1_CTL_PIN	3
 
 // DIGITAL INPUT LEVEL0
-#define DL0_PORT		PORTB
-#define DL0_PIN			PINB
-#define DL0_BIT			0
-#define DL0_DDR			DDRB
-#define DL0_MASK		0x1
+#define DL1_PORT		PORTB
+#define DL1_PIN			PINB
+#define DL1_BIT			0
+#define DL1_DDR			DDRB
+#define DL1_MASK		0x1
 
 bool IO_read_din0( uint8_t *pin);
 bool IO_read_din1( uint8_t *pin);
 
-#define IO_read_dinL0_pin() ( ( DL0_PIN & _BV(DL0_BIT) ) >> DL0_BIT )
+#define IO_read_dinL1_pin() ( ( DL1_PIN & _BV(DL1_BIT) ) >> DL1_BIT )
 
 #define IO_sensor_pwr_on() 	( MCP_modify( MCP1_ADDR, MCP1_OLATB, 1, MCP1_PWRSENSORS ) )
 #define IO_sensor_pwr_off() ( MCP_modify( MCP1_ADDR, MCP1_OLATB, 0, MCP1_PWRSENSORS ) )

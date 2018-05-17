@@ -522,7 +522,7 @@ uint8_t channel;
 
 #ifdef SP5KV5_3CH
 	// Agrego el canal digital de nivel 0.
-	pv_data_frame.dIn.level[0] = IO_read_dinL0_pin();
+	pv_data_frame.dIn.level[1] = IO_read_dinL1_pin();
 
 	// Agrego la bateria
 	pv_data_frame.batt = rAIn[3];
@@ -580,8 +580,8 @@ uint16_t pos = 0;
 		pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",%s=%.02f"), systemVars.dChName[channel],dframe->dIn.caudal[channel] );
 	}
 
-	// Nivel digital del canal 0.
-	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",L0=%d"), dframe->dIn.level[0] );
+	// Nivel digital del canal 1.
+	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",L1=%d"), dframe->dIn.level[1] );
 
 	// Bateria
 	pos += FRTOS_snprintf_P( &aIn_printfBuff[pos], ( sizeof(aIn_printfBuff) - pos ), PSTR(",bt=%.02f"),dframe->batt );

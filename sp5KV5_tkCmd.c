@@ -119,7 +119,7 @@ static void cmdHelpFunction(void)
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("-write\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 #ifdef SP5KV5_3CH
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  consigna {diurna|nocturna}, outputs {x,x}\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  consigna {diurna|nocturna}, outputs o0 o1\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  out sleep|reset|phase(A/B)|enable(A/B) {0|1}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -157,8 +157,6 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 #endif /* SP5KV5_8CH */
 
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  an chId\r\n\0"));
-		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff),PSTR("  din chId\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
@@ -186,7 +184,7 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  timerpoll, dlgid, gsmband\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  debug {none,mem,gprs,analog,digital,outputs} \r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  debug {none,mem,gprs,analog,digital,output} \r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 
 #ifdef SP5KV5_3CH
@@ -212,10 +210,10 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  outputs {off}|{normal o0 o1}|{consigna hhmm_dia hhmm_noche}\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  outputs off | normal | consigna {hhmm_dia} {hhmm_noche}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 #endif /* SP5KV5_3CH */
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  defaults \r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  default \r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  save\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
@@ -518,8 +516,8 @@ StatBuffer_t pxFFStatBuffer;
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("memory" ));
 
 #ifdef SP5KV5_3CH
-	} else if ( systemVars.debugLevel == D_OUTPUTS) {
-		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("outputs" ));
+	} else if ( systemVars.debugLevel == D_OUTPUT) {
+		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("output" ));
 #endif /* SP5KV5_3CH */
 
 	} else if ( systemVars.debugLevel == D_DIGITAL) {
@@ -686,7 +684,7 @@ uint8_t regValue;
 	}
 
 	// DIN
-	// read din 0|1
+	// read din
 	if (!strcmp_P( strupr(argv[1]), PSTR("DIN\0"))) {
 		pub_digital_read_Inputs( atoi(argv[2] ) );
 		return;
@@ -754,7 +752,7 @@ uint8_t outputs_mode;
 	pv_makeArgv();
 
 	// DEFAULT (load default configuration)
-	if (!strcmp_P( strupr(argv[1]), PSTR("DEFAULTS\0"))) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("DEFAULT\0"))) {
 		pub_loadDefaults();
 		return;
 	}
@@ -989,6 +987,23 @@ bool retS = false;
 		return;
 	}
 
+	// OUTPUTS
+	// outputs o0 o1
+	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0")) ) {
+		// Habilitamos al driver
+		IO_set_SLP();
+		IO_set_RES();
+
+		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+
+		pub_output_set_outputs( 'A', atoi(argv[2]) );
+		vTaskDelay( ( TickType_t)( 3000 / portTICK_RATE_MS ) );
+		pub_output_set_outputs( 'B', atoi(argv[3]) );
+
+		pv_snprintfP_OK();
+		return;
+	}
+
 	// CONSIGNA
 	// write consigna {diurna|nocturna}
 	if (!strcmp_P( strupr(argv[1]), PSTR("CONSIGNA\0")) ) {
@@ -1147,7 +1162,7 @@ bool pv_cmdWrDebugLevel(char *s)
 
 #ifdef SP5KV5_3CH
 	if ((!strcmp_P( strupr(s), PSTR("OUTPUT")))) {
-		systemVars.debugLevel = D_OUTPUTS;
+		systemVars.debugLevel = D_OUTPUT;
 		return(true);
 	}
 #endif /* SP5KV5_3CH */

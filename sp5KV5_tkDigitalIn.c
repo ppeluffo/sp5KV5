@@ -351,14 +351,10 @@ uint8_t pin;
 
 #ifdef SP5KV5_3CH
 
-	switch( channel ) {
-	case 0:
-		IO_read_din0(&pin);
-		break;
-	case 1:
-		IO_read_din1(&pin);
-		break;
-	}
+	// Solo leo el D1 LEVEL que es el pin conectado a PB0.
+	channel = 1;
+	pin = IO_read_dinL1_pin();
+
 #endif /* SP5KV5_3CH */
 
 #ifdef SP5KV5_8CH

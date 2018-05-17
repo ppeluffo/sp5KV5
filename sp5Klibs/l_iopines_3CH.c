@@ -56,6 +56,10 @@ void IO_init_pines(void)
 	sbi(LED_KA_PORT, LED_KA_BIT);
 	sbi(LED_MODEM_PORT, LED_MODEM_BIT);
 
+	// PB0 indica el nivel digital de la entrada digital 1. (entrada)
+	cbi(DL1_DDR, DL1_BIT );
+
+
 }
 //------------------------------------------------------------------------------------
 bool IO_read_din0( uint8_t *pin)

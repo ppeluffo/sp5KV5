@@ -22,8 +22,8 @@ bool DRV8814_test_pulse(char *s0, char *s1, char *s2);
 
 #define DRV8814_open_valve_A() DRV8814_test_pulse("A", "+", "100")
 #define DRV8814_close_valve_A() DRV8814_test_pulse("A", "-", "100")
-#define DRV8814_open_valve_B() DRV8814_test_pulse("B", "+", "100")
-#define DRV8814_close_valve_B() DRV8814_test_pulse("B", "-", "100")
+#define DRV8814_open_valve_B() DRV8814_test_pulse("B", "-", "100")
+#define DRV8814_close_valve_B() DRV8814_test_pulse("B", "+", "100")
 
 #endif /* SP5KV5_3CH */
 
