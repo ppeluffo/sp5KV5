@@ -109,15 +109,13 @@ static bool starting_flag = true;
 		goto EXIT;
 	}
 
-	// En modo CONTINUO ( timerDial = 0 ) espero solo 60s.
-	if ( ! MODO_DISCRETO ) {
-		waiting_time = 60;
-		goto EXIT;
-	}
-
 	// En modo DISCRETO ( timerDial > 900 )
 	if ( MODO_DISCRETO ) {
 		waiting_time = systemVars.timerDial;
+		goto EXIT;
+	} else {
+		// En modo CONTINUO ( timerDial = 0 ) espero solo 60s.
+		waiting_time = 60;
 		goto EXIT;
 	}
 

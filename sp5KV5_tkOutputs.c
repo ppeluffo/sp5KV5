@@ -129,12 +129,12 @@ static void pv_out_check_outputs_normales(void)
 	// Solo cambio las salidas si cambio el systemVars.
 	if ( l_out_A != systemVars.outputs.out_A) {
 		l_out_A = systemVars.outputs.out_A;
-		( l_out_A == 0 ) ?	pub_output_set_outputs( 'A', 0 ) : pub_output_set_outputs( 'A', 1 );
+		( l_out_A == 0 ) ?	DRV8814_set('A',"01") :  DRV8814_set('A',"10");
 	}
 
 	if ( l_out_B != systemVars.outputs.out_B ) {
 		l_out_B = systemVars.outputs.out_B;
-		( l_out_B == 0 ) ?	pub_output_set_outputs( 'B', 0 ) : pub_output_set_outputs( 'B', 1 );
+		( l_out_B == 0 ) ?	DRV8814_set('B',"01") :  DRV8814_set('B',"10");
 	}
 
 }
@@ -265,8 +265,8 @@ static void pv_out_init_outputs_normales(void)
 	l_out_A = systemVars.outputs.out_A;
 	l_out_B = systemVars.outputs.out_B;
 
-	( l_out_A == 0 ) ?	pub_output_set_outputs( 'A', 0 ) : pub_output_set_outputs( 'A', 1 );
-	( l_out_B == 0 ) ?	pub_output_set_outputs( 'B', 0 ) : pub_output_set_outputs( 'B', 1 );
+	( l_out_A == 0 ) ?	DRV8814_set('A',"01") :  DRV8814_set('A',"10");
+	( l_out_B == 0 ) ?	DRV8814_set('B',"01") :  DRV8814_set('B',"10");
 
 }
 //------------------------------------------------------------------------------------
@@ -349,11 +349,11 @@ void pub_output_set_outputs( char id_output, uint8_t value)
 
 	switch(id_output) {
 	case 'A':
-		( value == 0 ) ? DRV8814_close_valve_A() : DRV8814_open_valve_A();
+		( value == 0 ) ? DRV8814_set('A',"01") :  DRV8814_set('A',"10");
 		systemVars.outputs.out_A = value;
 		break;
 	case 'B':
-		( value == 0 ) ? DRV8814_close_valve_B() : DRV8814_open_valve_B();
+		( value == 0 ) ? DRV8814_set('B',"01") :  DRV8814_set('B',"10");
 		systemVars.outputs.out_B = value;
 		break;
 	}

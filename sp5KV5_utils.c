@@ -174,6 +174,9 @@ uint8_t i;
 	systemVars.dChName[0][PARAMNAME_LENGTH - 1] = '\0';
 	systemVars.dChName[1][PARAMNAME_LENGTH - 1] = '\0';
 
+	// Siempre al arrancar el debug es none
+	systemVars.debugLevel = D_NONE;
+
 	return(retS);
 
 }

@@ -10,7 +10,7 @@
 static void pv_readImei(void);
 
 // La tarea no puede demorar mas de 180s.
-#define WDG_GPRS_TO_PRENDER	180
+#define WDG_GPRS_TO_PRENDER	300
 
 //------------------------------------------------------------------------------------
 bool gprs_prender(void)
