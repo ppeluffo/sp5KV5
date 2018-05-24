@@ -218,7 +218,7 @@ static void cmdHelpFunction(void)
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  pwrsave {on|off} hhmm1 hhmm2\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
-		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  outputs off | normal | consigna hhmm_dia hhmm_noche\r\n\0"));
+		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  outputs {off | normal | consigna {hhmm_dia} [hhmm_noche}}\r\n\0"));
 		FreeRTOS_write( &pdUART1, cmd_printfBuff, sizeof(cmd_printfBuff) );
 #endif /* SP5KV5_3CH */
 		FRTOS_snprintf_P( cmd_printfBuff,sizeof(cmd_printfBuff), PSTR("  default \r\n\0"));
@@ -517,7 +517,7 @@ StatBuffer_t pxFFStatBuffer;
 	if ( systemVars.debugLevel == D_NONE) {
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("none" ));
 	} else if ( systemVars.debugLevel == D_ANALOG) {
-		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("data" ));
+		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("analog" ));
 	} else if ( systemVars.debugLevel == D_GPRS) {
 		pos += FRTOS_snprintf_P( &cmd_printfBuff[pos],sizeof(cmd_printfBuff), PSTR("gprs" ));
 	} else if ( systemVars.debugLevel == D_MEM) {

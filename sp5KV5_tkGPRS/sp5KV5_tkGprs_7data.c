@@ -177,6 +177,7 @@ bool exit_flag = false;
 
 		// Paso 2: Trasmito un paquete de datos
 		registros_trasmitidos = 0;
+		FF_seek();
 		pv_trasmitir_dataHeader();
 
 		while ( pv_hay_datos_para_trasmitir() && ( registros_trasmitidos < MAX_RCDS_WINDOW_SIZE ) ) {
