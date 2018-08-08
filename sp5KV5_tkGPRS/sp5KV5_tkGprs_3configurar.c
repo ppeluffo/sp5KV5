@@ -180,12 +180,12 @@ uint8_t reintentos = MAX_TRYES_NET_ATTCH;
 uint8_t check_tryes;
 bool exit_flag = false;
 
-	if ( systemVars.debugLevel == D_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET ATTACH.\r\n\0" ));
-		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
-	}
-
 	while ( reintentos-- > 0 ) {
+
+		if ( systemVars.debugLevel == D_GPRS ) {
+			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET ATTACH(%d).\r\n\0"),reintentos );
+			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+		}
 
 		// Envio el comando
 		pub_gprs_flush_RX_buffer();
@@ -222,6 +222,11 @@ bool exit_flag = false;
 				goto EXIT;			}
 
 			vTaskDelay( (portTickType)( 2000 / portTICK_RATE_MS ) );	// Espero 2s mas por la respuesta
+			if ( systemVars.debugLevel == D_GPRS ) {
+				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR(".\0" ));
+				FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+			}
+
 		}
 
 		// No pude atachearme. Debo mandar de nuevo el comando

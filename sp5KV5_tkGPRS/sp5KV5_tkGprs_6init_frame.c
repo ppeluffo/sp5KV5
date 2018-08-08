@@ -14,6 +14,7 @@ static void pv_process_server_clock(void);
 static void pv_reconfigure_params(void);
 
 #ifdef SP5KV5_3CH
+	static uint8_t pv_process_dlg_id(void);
 	static uint8_t pv_process_pwrSave(void);
 	static uint8_t pv_process_timerPoll(void);
 	static uint8_t pv_process_timerDial(void);
@@ -188,11 +189,22 @@ uint8_t i;
 	memset( gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
 	pub_gprs_flush_RX_buffer();
 
+	// Control del dlgID: Debe tener al menos 3 caracteres
+	if ( strlen(systemVars.dlgId) < 3 ) {
+		strncpy_P(systemVars.dlgId, PSTR("DEF400\0"),DLGID_LENGTH);
+		if ( systemVars.debugLevel == D_GPRS ) {
+			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: iniframe: short ID !!.\r\n\0"));
+			FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+		}
+
+	}
+
 	pos = FRTOS_snprintf_P( gprs_printfBuff,CHAR256,PSTR("GET " ));
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%s"), systemVars.serverScript );
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("?DLGID=%s"), systemVars.dlgId );
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&PASSWD=%s"), systemVars.passwd );
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&IMEI=%s"), &buff_gprs_imei );
+	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&SIMID=%s"), &buff_gprs_ssn );
 	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&VER=%s\0"), SP5K_REV );
 	// GPRS sent
 	FreeRTOS_write( &pdUART0, gprs_printfBuff, sizeof(gprs_printfBuff) );
@@ -307,6 +319,7 @@ uint8_t saveFlag = 0;
 
 #ifdef SP5KV5_3CH
 
+	saveFlag += pv_process_dlg_id();
 	saveFlag += pv_process_timerPoll();
 	saveFlag += pv_process_timerDial();
 	saveFlag += pv_process_pwrSave();
@@ -390,6 +403,45 @@ char c;
 //------------------------------------------------------------------------------------
 #ifdef SP5KV5_3CH
 
+
+static uint8_t pv_process_dlg_id(void)
+{
+	//	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:DLGID=TH001:PWRM=DISC:</h1>
+
+char *p, *s;
+uint8_t ret = 0;
+char localStr[32];
+char *stringp;
+char *token;
+char *delim = ",=:><";
+
+	s = FreeRTOS_UART_getFifoPtr(&pdUART0);
+	p = strstr(s, "DLGID");
+	if ( p == NULL ) {
+		goto quit;
+	}
+
+	// Copio el mensaje enviado a un buffer local porque la funcion strsep lo modifica.
+	memset(localStr,'\0',32);
+	memcpy(localStr,p,sizeof(localStr));
+
+	stringp = localStr;
+	token = strsep(&stringp,delim);	// DLGID
+	token = strsep(&stringp,delim);	// TH001
+
+	strncpy(systemVars.dlgId, token,DLGID_LENGTH);
+
+	ret = 1;
+	if ( systemVars.debugLevel == D_GPRS ) {
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Reconfig DLGID\r\n\0"));
+		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	}
+
+quit:
+
+	return(ret);
+}
+//------------------------------------------------------------------------------------
 static uint8_t pv_process_timerPoll(void)
 {
 //	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:TPOLL=600:PWRM=DISC:</h1>

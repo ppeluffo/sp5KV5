@@ -99,6 +99,7 @@ Changes from V2.6.0
 
 #define ASYNC_CLOCK_HZ						( ( unsigned long ) 32768 )
 #define ASYNC_CLOCK_PRESCALER				( ( unsigned long ) 8 )
+
 /*-----------------------------------------------------------*/
 
 /* We require the address of the pxCurrentTCB variable, but don't want to know
@@ -396,6 +397,7 @@ void vPortYieldFromTick( void )
 	{
 		vTaskSwitchContext();
 	}
+//	PORTD  ^= 1 << 6;
 	portRESTORE_CONTEXT();
 
 	asm volatile ( "ret" );
@@ -439,6 +441,7 @@ unsigned long ulCompareMatch;
 		// Enable interrups por compare on match
 		sbi(TIMSK2, OCIE2A);
 
+	//	sbi(DDRD, 6);
 }
 /*
  * Setup timer 1 compare match A to generate a tick interrupt.

@@ -48,6 +48,7 @@ void tkControl(void * pvParameters)
 {
 
 ( void ) pvParameters;
+//static uint8_t pin_clk = 0;
 
 	// Aqui solo controlo la terminal por lo que no me importa tanto el watchdog.
 	// Lo controlo en LedTiltWdg
@@ -81,6 +82,15 @@ void tkControl(void * pvParameters)
         pv_check_daily_reset();
         pv_check_wdg();
 
+/*		if ( pin_clk == 0 ) {
+			pin_clk = 1;
+			cbi(PORTD, 6);
+		} else {
+			pin_clk = 0;
+			sbi(PORTD, 6);
+		}
+*/
+//        PORTD  ^= 1 << 6;
     }
 
 }
@@ -104,6 +114,7 @@ char buffer[10];
 			strcpy_P(buffer, (PGM_P)pgm_read_word(&(wdg_names[wdg])));
 			FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("CTL: WDG TO(%s) !!\r\n\0"),buffer);
 			FreeRTOS_write( &pdUART1, ctl_printfBuff, sizeof(ctl_printfBuff) );
+			vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 			while(1);		// Me reseteo por watchdog
 		}
 	}

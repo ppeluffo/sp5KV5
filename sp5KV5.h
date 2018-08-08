@@ -78,7 +78,7 @@
 #define tkAIn_STACK_SIZE		384
 #define tkGprsRx_STACK_SIZE		448
 #define tkOutputs_STACK_SIZE	448
-#define tkGprs_STACK_SIZE		650
+#define tkGprs_STACK_SIZE		690
 //                            = 3370 + 400 = 3770 *2 = 7540: Memoria del heap usada para stack de tareas.
 // El heap esta definido en 10K de modo que quedan 2460 libres para las uart queues y otros.
 // La compilacion indica 4004 bytes o sea que quedan libres 12308 de los cuales 10000 se lleva el heap

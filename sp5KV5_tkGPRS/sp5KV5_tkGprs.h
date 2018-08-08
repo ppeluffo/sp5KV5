@@ -28,6 +28,8 @@ char gprs_printfBuff[CHAR256];
 
 #define IMEIBUFFSIZE	24
 char buff_gprs_imei[IMEIBUFFSIZE];
+char buff_gprs_ssn[IMEIBUFFSIZE];
+char buff_gprs_cimi[IMEIBUFFSIZE];
 
 struct {
 	char buffer[UART0_RXBUFFER_LEN];

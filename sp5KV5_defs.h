@@ -8,8 +8,8 @@
 #ifndef SRC_SP5KV5_DEFS_H_
 #define SRC_SP5KV5_DEFS_H_
 
-#define SP5K_REV "5.2.0"
-#define SP5K_DATE "@ 20180524"
+#define SP5K_REV "5.3.0"
+#define SP5K_DATE "@ 20180808"
 
 #define SP5K_MODELO "sp5KV3 HW:avr1284P R5.0"
 #define SP5K_VERSION "FW:FRTOS8"
@@ -17,6 +17,11 @@
 //#define SP5KV5_8CH
 #define SP5KV5_3CH
 
+// Definiciones para indicar el servidor y los datos por defecto de conexion.
+#define SERVER_OSE
+//#define SERVER_UTE
+//#define SERVER_SPY
+//---------------------------------------------------------------------------
 #ifdef SP5KV5_3CH
 	#define NRO_ANALOG_CHANNELS		3
 	#define NRO_DIGITAL_CHANNELS 	2

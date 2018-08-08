@@ -187,17 +187,40 @@ void pub_loadDefaults(void)
 // Configura el systemVars con valores por defecto.
 
 	systemVars.initByte = 0x49;
+
+#ifdef SERVER_SPY
 	strncpy_P(systemVars.dlgId, PSTR("DEF400\0"),DLGID_LENGTH);
 	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
 	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
 	strncpy_P(systemVars.apn, PSTR("SPYMOVIL.VPNANTEL\0"),APN_LENGTH);
+	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
+	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),IP_LENGTH);
+
+#endif
+
+#ifdef SERVER_OSE
+	strncpy_P(systemVars.dlgId, PSTR("DEF400\0"),DLGID_LENGTH);
+	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
+	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
+	strncpy_P(systemVars.apn, PSTR("STG1.VPNANTEL\0"),APN_LENGTH);
+	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
+	strncpy_P(systemVars.server_ip_address, PSTR("172.27.0.26\0"),IP_LENGTH);
+#endif
+
+#ifdef SERVER_UTE
+	strncpy_P(systemVars.dlgId, PSTR("DEF400\0"),DLGID_LENGTH);
+	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
+	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
+	strncpy_P(systemVars.apn, PSTR("SPYMOVIL.VPNANTEL\0"),APN_LENGTH);
+	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K8CH.pl\0"),SCRIPT_LENGTH);
+	strncpy_P(systemVars.server_ip_address, PSTR("192.168.1.9\0"),IP_LENGTH);
+#endif
 
 	systemVars.csq = 0;
 	systemVars.dbm = 0;
 	systemVars.gsmBand = 8;
 	systemVars.ri = 0;
 	systemVars.terminal_on = false;
-
 	systemVars.roaming = false;
 
 	// DEBUG
@@ -210,9 +233,6 @@ void pub_loadDefaults(void)
 	pub_digital_load_defaults();
 
 #ifdef SP5KV5_3CH
-
-	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
-	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),IP_LENGTH);
 
 	systemVars.timerDial = 1800;		// Transmito c/3 hs.
 
@@ -228,8 +248,6 @@ void pub_loadDefaults(void)
 #endif /* SP5KV5_3CH */
 
 #ifdef SP5KV5_8CH
-	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K8CH.pl\0"),SCRIPT_LENGTH);
-	strncpy_P(systemVars.server_ip_address, PSTR("192.168.1.9\0"),IP_LENGTH);
 
 	systemVars.timerDial = 0;		// Continuo
 
@@ -239,7 +257,9 @@ void pub_loadDefaults(void)
 void pub_reset(void)
 {
 	wdt_enable(WDTO_30MS);
+
 	while(1) {}
+
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PRIVADAS
@@ -250,10 +270,14 @@ uint16_t i;
 uint8_t checksum_stored=0;
 uint8_t checksum=0;
 
+	taskENTER_CRITICAL();
+
 	// load parameters
 	eeprom_read_block(data, (uint8_t *)addr, sizebytes);
 	// load checksum
 	eeprom_read_block(&checksum_stored, (uint8_t *)(addr+sizebytes), sizeof(uint8_t));
+
+	taskEXIT_CRITICAL();
 
 	// calculate own checksum
 	for(i=0;i<sizebytes;i++)
@@ -278,10 +302,14 @@ uint8_t checksum=0;
 		checksum += data[i];
 	checksum = ~checksum;
 
+	taskENTER_CRITICAL();
+
 	// store parameters
-	 eeprom_write_block(data, (uint8_t *)addr, sizebytes);
+	eeprom_write_block(data, (uint8_t *)addr, sizebytes);
 	// store checksum
 	eeprom_write_block(&checksum, (uint8_t *)(addr+sizebytes), sizeof(uint8_t));
+
+	taskEXIT_CRITICAL();
 
 	return(checksum);
 }

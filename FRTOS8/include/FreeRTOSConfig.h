@@ -93,7 +93,7 @@
 // Es importante el tamanio del idle stack ya que sino es quien genera
 // colgadas inexplicables.
 #define configMINIMAL_STACK_SIZE	( ( unsigned short ) 400 )
-#define configTOTAL_HEAP_SIZE		( (size_t ) ( 10000 ) )
+#define configTOTAL_HEAP_SIZE		( (size_t ) ( 11000 ) )
 #define configMAX_TASK_NAME_LEN		( 8 )
 #define configUSE_TRACE_FACILITY	0
 #define configUSE_16_BIT_TICKS		0

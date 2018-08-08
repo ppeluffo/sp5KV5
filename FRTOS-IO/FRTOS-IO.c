@@ -325,10 +325,10 @@ UART_device_control_t *pUart;
 	switch( ulRequest )
 	{
 		case ioctlUART_ENABLE:
-			cbi(UARTCTL_PORT, UARTCTL);
+//			cbi(UARTCTL_PORT, UARTCTL);
 			break;
 		case ioctlUART_DISABLE:
-			sbi(UARTCTL_PORT, UARTCTL);
+//			sbi(UARTCTL_PORT, UARTCTL);
 			break;
 		case ioctlOBTAIN_BUS_SEMPH:
 			// Espero el semaforo en forma persistente.

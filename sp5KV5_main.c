@@ -19,6 +19,16 @@
  *
  * !! Agregar el salir automaticamente luego de 30 mins del modo service.
  *
+ * V5.3.0:
+ * - Problema de reset a default con DEF400.
+ *   Leo del SIM el serial number ( E2SSN ) y el nro de suscriptor (+CIMI).
+ *   Ambos indetifican en forma unica al sim por lo tanto, cuando trasmito el INIT, envio el S/N.
+ *   Con esto el servidor puede determinar si el DLGID es el correcto
+ *   y si no, me envia el correspondiente con el cual me reconfiguro.
+ *   Implemento pv_process_dlgid().
+ *   De acuerdo que el firmware se use para OSE o para SPYMOVIL, con #defines cargo el default de c/u.
+ *   Con esto, c/version tiene 2 modos: ose / spymovil.
+ *
  * V5.2.0:
  * - Elimino el uso del sprintf_P e implemento un FRTOS_sprintf. ( no uso progmspace aun )
  * - Agrego al compilador las flags "-fno-move-loop-invariants -Werror=implicit-function-declaration"
@@ -55,7 +65,6 @@
  *   tkGPRS_RX esta en 125 por lo que lo bajo en 64.
  *   Vemos que la tarea IDLE es la que hace que el sistema se cuelga ya que el stack que usa el chico.
  *   Lo aumentamos en CONFIG_MIN_STACK a 400.
- *
  *
  * V5.1.1:
  * Elimino el tilt y lo pongo como una entrada digital del nivel.

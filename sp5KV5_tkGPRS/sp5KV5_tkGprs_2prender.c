@@ -8,6 +8,8 @@
 #include "sp5KV5_tkGprs.h"
 
 static void pv_readImei(void);
+static void pv_readSsn(void);
+static void pv_readCimi(void);
 
 // La tarea no puede demorar mas de 180s.
 #define WDG_GPRS_TO_PRENDER	300
@@ -114,6 +116,8 @@ EXIT:
 	// Ajusto la flag modem_prendido ya que termino el ciclo y el micro pueda entrar en sleep.
 	if ( exit_flag == bool_CONTINUAR ) {
 		pv_readImei();		// Leo el IMEI
+		pv_readSsn();		// Leo el SIM serial number
+		pv_readCimi();		// Leo el SIM line id.
 	}
 
 	return(exit_flag);
@@ -125,8 +129,12 @@ static void pv_readImei(void)
 {
 	// Leo el imei del modem para poder trasmitirlo al server y asi
 	// llevar un control de donde esta c/sim
+	//AT+CGSN
+	//0110130089568607
+	//
+	//OK
 
-uint8_t i,j,start, end;
+uint8_t i,j,start;
 
 	pub_gprs_flush_RX_buffer();
 	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGSN\r\0"));
@@ -143,26 +151,24 @@ uint8_t i,j,start, end;
 		// puede ser grande.
 		memcpy(gprs_printfBuff, FreeRTOS_UART_getFifoPtr(&pdUART0), sizeof(gprs_printfBuff) );
 
-		// Guardo el IMEI
-		start = 0;
-		end = 0;
-		j = 0;
 		// Busco el primer digito
-		for ( i = 0; i < 64; i++ ) {
+		start = 0;
+		for ( i = 0; i < sizeof(gprs_printfBuff); i++ ) {
 			if ( isdigit( gprs_printfBuff[i]) ) {
 				start = i;
 				break;
 			}
 		}
-		if ( start == end )		// No lo pude leer.
+		if ( start == 0 )		// No lo pude leer.
 			goto EXIT;
 
-		// Busco el ultimo digito y copio todos
-		for ( i = start; i < IMEIBUFFSIZE; i++ ) {
+		// copio todos los digitos
+		j = 0;
+		for ( i = start; i < sizeof(gprs_printfBuff); i++ ) {
 			if ( isdigit( gprs_printfBuff[i]) ) {
 				buff_gprs_imei[j++] = gprs_printfBuff[i];
-				buff_gprs_imei[ IMEIBUFFSIZE - 1 ] = '\0';
 			} else {
+				buff_gprs_imei[i] = '\0';
 				break;
 			}
 		}
@@ -173,6 +179,128 @@ EXIT:
 
 	if ( systemVars.debugLevel == D_GPRS ) {
 		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: IMEI[%s]\r\n\0"), &buff_gprs_imei);
+		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	}
+
+}
+//--------------------------------------------------------------------------------------
+static void pv_readSsn(void)
+{
+	//*E2SSN: 8959801612330664543
+	//
+	//OK
+
+
+uint8_t i,j, start;
+
+	memset( buff_gprs_ssn, '\0', IMEIBUFFSIZE);
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*E2SSN\r\0"));
+	FreeRTOS_write( &pdUART0, &gprs_printfBuff, sizeof(gprs_printfBuff) );
+
+	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
+
+	// Leo y Evaluo la respuesta al comando AT+CGSN
+	if ( strstr( gprsRx.buffer, "OK") != NULL ) {
+
+		pub_gprs_print_RX_Buffer();
+
+		// Extraigoel IMEI del token. Voy a usar el buffer  de print ya que la respuesta
+		// puede ser grande.
+		memcpy(gprs_printfBuff, FreeRTOS_UART_getFifoPtr(&pdUART0), sizeof(gprs_printfBuff) );
+
+		// Busco el caracter :
+		start = 0;
+		j = 0;
+		for ( i = 0; i < sizeof(gprs_printfBuff); i++ ) {
+			if ( gprs_printfBuff[i] == ':') {
+				start = i;
+				break;
+			}
+		}
+
+		if ( start == 0 )		// No lo pude leer.
+			goto EXIT;
+
+		// Busco el primer digito del SSN
+		for ( i = start; i < 64; i++ ) {
+			if ( isdigit( gprs_printfBuff[i]) ) {
+				start = i;
+				break;
+			}
+		}
+
+		// Busco el ultimo digito y copio todos
+		for ( i = 0; i < IMEIBUFFSIZE; i++ ) {
+			if ( isdigit( gprs_printfBuff[ start + i]) ) {
+				buff_gprs_ssn[j++] = gprs_printfBuff[start + i];
+			} else {
+				buff_gprs_cimi[ j ] = '\0';
+				break;
+			}
+		}
+
+	}
+
+// Exit
+EXIT:
+
+	if ( systemVars.debugLevel == D_GPRS ) {
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: SSN[%s]\r\n\0"), &buff_gprs_ssn);
+		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	}
+
+}
+//--------------------------------------------------------------------------------------
+static void pv_readCimi(void)
+{
+
+uint8_t i,j,start;
+
+	pub_gprs_flush_RX_buffer();
+	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CIMI\r\0"));
+	FreeRTOS_write( &pdUART0, &gprs_printfBuff, sizeof(gprs_printfBuff) );
+
+	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
+
+	// Leo y Evaluo la respuesta al comando AT+CGSN
+	if ( strstr( gprsRx.buffer, "OK") != NULL ) {
+
+		pub_gprs_print_RX_Buffer();
+
+		// Extraigoel IMEI del token. Voy a usar el buffer  de print ya que la respuesta
+		// puede ser grande.
+		memcpy(gprs_printfBuff, FreeRTOS_UART_getFifoPtr(&pdUART0), sizeof(gprs_printfBuff) );
+
+		// Guardo el CIMI
+		start = 0;
+		j = 0;
+		// Busco el primer digito
+		for ( i = 0; i < 64; i++ ) {
+			if ( isdigit( gprs_printfBuff[i]) ) {
+				start = i;
+				break;
+			}
+		}
+		if ( start == 0 )		// No lo pude leer.
+			goto EXIT;
+
+		// Busco el ultimo digito y copio todos
+		for ( i = 0; i < IMEIBUFFSIZE; i++ ) {
+			if ( isdigit( gprs_printfBuff[ start + i]) ) {
+				buff_gprs_cimi[j++] = gprs_printfBuff[start + i];
+			} else {
+				buff_gprs_cimi[ j ] = '\0';
+				break;
+			}
+		}
+	}
+
+// Exit
+EXIT:
+
+	if ( systemVars.debugLevel == D_GPRS ) {
+		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: CIMI[%s]\r\n\0"), &buff_gprs_cimi);
 		FreeRTOS_write( &pdUART1, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 

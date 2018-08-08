@@ -60,8 +60,9 @@ bool exit_flag = false;
 		pub_control_watchdog_kick(WDG_GPRS, ( waiting_time + 300));
 
 		// Espera
-		while( --waiting_time > 0 ) {
+		while( waiting_time > 0 ) {
 			// Espero de a 1s.
+			--waiting_time;
 			vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 
 			// Proceso las señales
